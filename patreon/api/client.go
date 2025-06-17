@@ -52,7 +52,7 @@ func (c *Client) GetCampaignID(creatorID string) (string, error) {
 	return matches[1], nil
 }
 
-func (c *Client) DoAPIRequest(path string, options map[string]string) (*http.Response, error) {
+func (c *Client) doAPIRequest(path string, options map[string]string) (*http.Response, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -97,7 +97,7 @@ func (c *Client) GetPosts(campaignID string, cursor *string) (Response, error) {
 		options["page[cursor]"] = *cursor
 	}
 
-	response, err := c.DoAPIRequest("/posts", options)
+	response, err := c.doAPIRequest("/posts", options)
 	if err != nil {
 		return Response{}, err
 	}
