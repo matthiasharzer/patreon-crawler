@@ -120,6 +120,11 @@ func downloadMedia(media patreon.Media, downloadDir string) error {
 	}
 	downloadedFilePath := fmt.Sprintf("%s/%s.%s", downloadDir, media.ID, extension)
 
+	if _, err := os.Stat(downloadedFilePath); err == nil {
+		fmt.Printf("\t- skiped %s (already downloaded)\n", media.ID)
+		return nil
+	}
+
 	response, err := http.Get(media.DownloadURL)
 	if err != nil {
 		return fmt.Errorf("failed to download media: %w", err)
@@ -150,6 +155,7 @@ func downloadMedia(media patreon.Media, downloadDir string) error {
 		return fmt.Errorf("failed to rename file: %w", err)
 	}
 
+	fmt.Printf("\t- saved %s\n", media.ID)
 	return nil
 }
 
@@ -223,6 +229,11 @@ func main() {
 			break
 		}
 
+		if len(post.Media) == 0 {
+			fmt.Printf("[%d] Skipping post '%s' with no media\n", postsDownloaded, post.Title)
+			continue
+		}
+
 		postsCrawled++
 
 		if !post.CurrentUserCanView && !argDownloadInaccessibleMedia {
@@ -230,10 +241,7 @@ func main() {
 			continue
 		}
 
-		if len(post.Media) == 0 {
-			fmt.Printf("[%d] Skipping post '%s' with no media\n", postsDownloaded, post.Title)
-			continue
-		}
+		fmt.Printf("[%d] Crawling post '%s'\n", postsDownloaded, post.Title)
 
 		err = nil
 		switch groupingStrategy {
@@ -250,7 +258,6 @@ func main() {
 		}
 
 		postsDownloaded++
-		fmt.Printf("[%d] Downloaded post (%d image(s)) '%s'\n", postsDownloaded, len(post.Media), post.Title)
 	}
 	if postsCrawled == 0 {
 		fmt.Println("No posts found")
