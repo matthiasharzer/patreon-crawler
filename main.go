@@ -212,6 +212,7 @@ func main() {
 	posts := client.Posts()
 
 	postsDownloaded := 0
+	postsCrawled := 0
 	for post, err := range posts {
 		if err != nil {
 			panic(err)
@@ -220,6 +221,8 @@ func main() {
 		if postsDownloaded >= argDownloadLimit && argDownloadLimit != 0 {
 			break
 		}
+
+		postsCrawled++
 
 		if !post.CurrentUserCanView && !argDownloadInaccessibleMedia {
 			fmt.Printf("[%d] Skipping inaccessible post '%s'\n", postsDownloaded, post.Title)
@@ -247,5 +250,17 @@ func main() {
 
 		postsDownloaded++
 		fmt.Printf("[%d] Downloaded post (%d image(s)) '%s'\n", postsDownloaded, len(post.Media), post.Title)
+	}
+	if postsCrawled == 0 {
+		fmt.Println("No posts found")
+	}
+
+	downloadedFraction := float64(postsDownloaded) / float64(postsCrawled)
+	if downloadedFraction < 0.8 {
+		if postsDownloaded == 0 {
+			fmt.Printf("Warning: No posts were downloaded. Did you provide a valid cookie string?\n")
+		} else {
+			fmt.Printf("Warning: Only %f%% of posts were downloaded. Did you provide a valid cookie string?\n", downloadedFraction*100)
+		}
 	}
 }

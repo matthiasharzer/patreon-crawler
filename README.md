@@ -1,32 +1,48 @@
-Simple tool to download all media from a patreon creator using a chrome cookie file
+# Patreon Crawler
+A simple tool to download all media from a patreon creator
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<br>
+
+## Setup
+Download the [latest release](https://github.com/MatthiasHarzer/patreon-crawler/releases) and add the executable to your `PATH`.
+
+> Don't forget to make the file executable using `chmod +x patreon-crawler` when using a UNIX-based operating system
 
 ## Usage
 
-Requires Python 3.12 or higher.
+To use this tool, you need to extract the cookies from the Patreon website. The cookies are used to authenticate you against the Patreon API.
+
+### Extracting the cookies from Patreon
+The simplest way to extract the cookies is by visiting the Patreon home page and copying the cookie-value from a network request:
+
+1. In a new tab, [open your browser's network tab](https://superuser.com/questions/1625410/is-there-a-shortcut-for-opening-the-dev-tools-network-tab-in-chrome).
+2. Navigate to [patreon.com/home](https://www.patreon.com/home). Make sure you are logged in.
+3. Find a request starting with `current_user?include=....`. Click it a scroll to the `Request Headers` section.
+4. Copy the `Cookie` value to your clipboard.
+
+### Using the tool
+
+Run the following command:
 
 ```shell
-python patreon_crawler.py --creator <creator1,creator2, ...> --cookie-file <path-to-chrome-cookie-file | 'auto'>
+patreon-crawler --creator <creator-id>
 ```
 
-<br>
+You will be prompted to enter the cookie (the one you copied earlier) and a download directory. 
 
-Use the interactive mode to set `creator` and `cookie-file` interactively by omitting the arguments.
+If you do not wish do be prompted, you can also use the `--cookie` and `--download-dir` flag respectively.
 
-```shell
-python patreon_crawler.py
-```
+### Command line flags
 
-> **Note:** Chrome locks the cookie file while the browser is running. Make sure to close all chrome instances before running the script.
+The `patreon-crawler` supports the following command line flags.
 
-### Arguments
-
-| Argument                 | Description                                                                                                                                                                                                                                                  |
-|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `creator`                | A comma seperated list of all creators to crawl                                                                                                                                                                                                              |
-| `cookie-file`            | The path to the chrome-cookie file to use for authentication. Use `auto` to try to determine the file automatically.                                                                                                                                         |
-| `download-dir`           | The base directory to download media to. All files will be located in `<download-dir>/<creator>`. Defaults to `./downloads` if unset                                                                                                                         |
-| `max-posts`              | The maximum number of posts to crawl.                                                                                                                                                                                                                        |
-| `download-inaccessible`  | Whether to download media that is inaccessible (blurred images)                                                                                                                                                                                              |
-| `max-parallel-downloads` | The maximum downloads to run in parallel                                                                                                                                                                                                                     |
-| `post-grouping-strategy` | The strategy for grouping post media into folders. <br>`none` - Puts all media into the same folder (per creator)<br>`all` - Creates a folder for each post, containing its media <br>`dynamic` - Posts with more than one file are grouped into a directory |
+| Argument                      | Description                                                                                                                                                                           |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `creator`                     | The creator ID to download media from. You can find this in the URL when visiting a creators page: `patreon.com/c/<creator-id>/...`                                                   |
+| `cookie`                      | The cookie from the Patreon website to authenticate against the Patreon API                                                                                                           |
+| `download-dir`                | The base directory to download media to. All files will be located in `<download-dir>/<creator>`                                                                                      |
+| `download-limit`              | The maximum number of images to download.                                                                                                                                             |
+| `download-inaccessible-media` | Whether to download media that is inaccessible (blurred images)                                                                                                                       |
+| `grouping`                    | The strategy for grouping post media into folders. <br>`none` - Puts all media into the same folder (per creator)<br>`by-post` - Creates a folder for each post, containing its media |
 
