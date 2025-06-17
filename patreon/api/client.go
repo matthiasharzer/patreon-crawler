@@ -10,11 +10,7 @@ import (
 	"strings"
 )
 
-var patreonCampaignRegex *regexp.Regexp
-
-func init() {
-	patreonCampaignRegex = regexp.MustCompile(`patreon-media/p/campaign/(\d+)/.`)
-}
+var patreonCampaignRegex = regexp.MustCompile(`patreon-media/p/campaign/(\d+)/.`)
 
 const apiURL = "https://www.patreon.com/api"
 

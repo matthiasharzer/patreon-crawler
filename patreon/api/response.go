@@ -89,10 +89,12 @@ type ResponseMediaDimensions struct {
 type ResponseMeta struct {
 	Pagination ResponsePagination `json:"pagination"`
 }
+
 type ResponsePagination struct {
 	Total  int            `json:"total"`
 	Cursor ResponseCursor `json:"cursor"`
 }
+
 type ResponseCursor struct {
 	Next string `json:"next"`
 }
