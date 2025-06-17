@@ -28,26 +28,6 @@ func NewClient(cookie string) *Client {
 	}
 }
 
-func (c *Client) GetCampaignID(creatorID string) (string, error) {
-	campaignURL := creatorURL(creatorID)
-	response, err := http.Get(campaignURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to get campaign ID: %s", err)
-	}
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read campaign ID response: %s", err)
-	}
-
-	matches := patreonCampaignRegex.FindStringSubmatch(string(body))
-	if len(matches) == 0 {
-		return "", fmt.Errorf("failed to find campaign ID")
-	}
-
-	return matches[1], nil
-}
-
 func (c *Client) doAPIRequest(path string, options map[string]string) (*http.Response, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
@@ -76,6 +56,26 @@ func (c *Client) doAPIRequest(path string, options map[string]string) (*http.Res
 
 	client := &http.Client{}
 	return client.Do(request)
+}
+
+func (c *Client) GetCampaignID(creatorID string) (string, error) {
+	campaignURL := creatorURL(creatorID)
+	response, err := http.Get(campaignURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to get campaign ID: %s", err)
+	}
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read campaign ID response: %s", err)
+	}
+
+	matches := patreonCampaignRegex.FindStringSubmatch(string(body))
+	if len(matches) == 0 {
+		return "", fmt.Errorf("failed to find campaign ID")
+	}
+
+	return matches[1], nil
 }
 
 func (c *Client) GetPosts(campaignID string, cursor *string) (Response, error) {

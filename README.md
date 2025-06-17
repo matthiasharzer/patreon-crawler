@@ -11,7 +11,7 @@ Download the [latest release](https://github.com/MatthiasHarzer/patreon-crawler/
 
 ## Usage
 
-To use this tool, you need to extract the cookies from the Patreon website. The cookies are used to authenticate you against the Patreon API.
+The `patreon-crawler` requires you to manually extract the cookie from the Patreon website inorder to authenticate you against the Patreon API. 
 
 ### Extracting the cookies from Patreon
 The simplest way to extract the cookies is by visiting the Patreon home page and copying the cookie-value from a network request:
@@ -23,7 +23,7 @@ The simplest way to extract the cookies is by visiting the Patreon home page and
 
 ### Using the tool
 
-Run the following command:
+To download all media from a creator, run the following command.
 
 ```shell
 patreon-crawler --creator <creator-id>
@@ -42,7 +42,7 @@ The `patreon-crawler` supports the following command line flags.
 | `creator`                     | The creator ID to download media from. You can find this in the URL when visiting a creators page: `patreon.com/c/<creator-id>/...`                                                   |
 | `cookie`                      | The cookie from the Patreon website to authenticate against the Patreon API                                                                                                           |
 | `download-dir`                | The base directory to download media to. All files will be located in `<download-dir>/<creator>`                                                                                      |
-| `download-limit`              | The maximum number of images to download.                                                                                                                                             |
+| `download-limit`              | The maximum number of media files to download.                                                                                                                                        |
 | `download-inaccessible-media` | Whether to download media that is inaccessible (blurred images)                                                                                                                       |
 | `grouping`                    | The strategy for grouping post media into folders. <br>`none` - Puts all media into the same folder (per creator)<br>`by-post` - Creates a folder for each post, containing its media |
 

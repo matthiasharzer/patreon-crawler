@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 
 	"patreon-crawler/patreon"
@@ -16,10 +17,10 @@ import (
 
 var version = "version unknown"
 
-var windowsReservedNames = map[string]struct{}{
-	"CON": {}, "PRN": {}, "AUX": {}, "NUL": {},
-	"COM1": {}, "COM2": {}, "COM3": {}, "COM4": {}, "COM5": {}, "COM6": {}, "COM7": {}, "COM8": {}, "COM9": {},
-	"LPT1": {}, "LPT2": {}, "LPT3": {}, "LPT4": {}, "LPT5": {}, "LPT6": {}, "LPT7": {}, "LPT8": {}, "LPT9": {},
+var windowsReservedNames = []string{
+	"CON", "PRN", "AUX", "NUL",
+	"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+	"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 }
 
 var invalidChars = regexp.MustCompile(`[<>:"/\\|?*\x00]`)
@@ -40,9 +41,9 @@ var argGroupingStrategy string
 
 func init() {
 	flag.StringVar(&argCreatorID, "creator", "", "The creator ID to crawl")
-	flag.StringVar(&argCookie, "cookie", "", "Cookie to authenticate with")
-	flag.StringVar(&argDownloadDir, "download-dir", "", "Download directory")
-	flag.IntVar(&argDownloadLimit, "download-limit", 0, "The maximum number of posts to download")
+	flag.StringVar(&argCookie, "cookie", "", "The cookie to use for authentication")
+	flag.StringVar(&argDownloadDir, "download-dir", "", "The directory to download posts to")
+	flag.IntVar(&argDownloadLimit, "download-limit", 0, "The maximum number of media files to download")
 	flag.BoolVar(&argDownloadInaccessibleMedia, "download-inaccessible-media", false, "Whether to download inaccessible media")
 	flag.StringVar(&argGroupingStrategy, "grouping", "none", "The grouping strategy to use. Must be one of: none, by-post")
 	flag.Parse()
@@ -91,7 +92,7 @@ func sanitizeFilename(name string) string {
 	name = invalidChars.ReplaceAllString(name, "_")
 	name = strings.TrimRight(name, " .")
 	upper := strings.ToUpper(name)
-	if _, isReserved := windowsReservedNames[upper]; isReserved {
+	if slices.Contains(windowsReservedNames, upper) {
 		name = "_" + name
 	}
 	if len(name) > 255 {
