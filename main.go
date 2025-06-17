@@ -211,6 +211,8 @@ func main() {
 	}
 	creatorDownloadDir := fmt.Sprintf("%s/%s", downloadDir, sanitizeFilename(argCreatorID))
 
+	fmt.Printf("Downloading posts from %s to %s\n", argCreatorID, creatorDownloadDir)
+
 	client, err := patreon.NewClient(api.NewClient(cookie), argCreatorID)
 	if err != nil {
 		panic(err)
@@ -230,7 +232,7 @@ func main() {
 		}
 
 		if len(post.Media) == 0 {
-			fmt.Printf("[%d] Skipping post '%s' with no media\n", postsDownloaded, post.Title)
+			fmt.Printf("[%d] Skipping post with no media '%s'\n", postsDownloaded, post.Title)
 			continue
 		}
 
@@ -241,7 +243,7 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("[%d] Crawling post '%s'\n", postsDownloaded, post.Title)
+		fmt.Printf("[%d] Saving post '%s'\n", postsDownloaded, post.Title)
 
 		err = nil
 		switch groupingStrategy {
