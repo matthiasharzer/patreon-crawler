@@ -60,7 +60,7 @@ func isGroupingStrategy(strategy GroupingStrategy) bool {
 
 func getCookie() (string, error) {
 	if argCookie != "" {
-		return argCookie, nil
+		return strings.TrimSpace(argCookie), nil
 	}
 
 	fmt.Println("Please enter your cookie from the patreon website: ")
@@ -70,7 +70,7 @@ func getCookie() (string, error) {
 		return "", fmt.Errorf("failed to read cookie: %w", err)
 	}
 	cookieString = cookieString[:len(cookieString)-1]
-	return cookieString, nil
+	return strings.TrimSpace(cookieString), nil
 }
 
 func getDownloadDir() (string, error) {
