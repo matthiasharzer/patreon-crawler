@@ -14,6 +14,8 @@ import (
 	"patreon-crawler/patreon/api"
 )
 
+var version = "version unknown"
+
 var windowsReservedNames = map[string]struct{}{
 	"CON": {}, "PRN": {}, "AUX": {}, "NUL": {},
 	"COM1": {}, "COM2": {}, "COM3": {}, "COM4": {}, "COM5": {}, "COM6": {}, "COM7": {}, "COM8": {}, "COM9": {},
@@ -170,6 +172,15 @@ func downloadPost(downloadDirectory string, post patreon.Post) error {
 }
 
 func main() {
+	if len(os.Args) == 1 {
+		fmt.Printf("patreon-crawler %s\n", version)
+		flag.PrintDefaults()
+
+		fmt.Println("\nUsage:")
+		fmt.Println("  patreon-crawler --creator <creator ID> --download-dir <download directory>")
+		return
+	}
+
 	if argCreatorID == "" {
 		panic("creator ID is required")
 	}
