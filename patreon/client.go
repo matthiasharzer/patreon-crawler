@@ -73,7 +73,7 @@ func (c *Crawler) GetPosts(cursor string) ([]Post, string, error) {
 		})
 	}
 
-	nextCursor := postsResponse.Meta.Pagination.Cursor.Next
+	nextCursor := postsResponse.Meta.Pagination.Cursors.Next
 
 	return posts, nextCursor, nil
 }

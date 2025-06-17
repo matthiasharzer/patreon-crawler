@@ -91,11 +91,11 @@ type ResponseMeta struct {
 }
 
 type ResponsePagination struct {
-	Total  int            `json:"total"`
-	Cursor ResponseCursor `json:"cursor"`
+	Total   int             `json:"total"`
+	Cursors ResponseCursors `json:"cursors"`
 }
 
-type ResponseCursor struct {
+type ResponseCursors struct {
 	Next string `json:"next"`
 }
 
