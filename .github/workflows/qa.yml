@@ -26,6 +26,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: ./go.mod
+      - name: Run QA
+        run:
+          make qa-server
       - name: Build artifacts
         env:
           GOMODCACHE: /tmp/go/pkg/mod
