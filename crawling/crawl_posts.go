@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"patreon-crawler/patreon"
 )
@@ -44,6 +43,14 @@ func sanitizeFilename(name string) string {
 	return name
 }
 
+func getMediaFile(downloadDirectory string, media patreon.Media) (string, error) {
+	extension, err := getFileExtension(media.MimeType)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s/%s.%s", downloadDirectory, media.ID, extension), nil
+}
+
 func getFileExtension(mimeType string) (string, error) {
 	// This is a very quick and dirty method, but it should work here
 	mimeTypeSplits := strings.Split(mimeType, "/")
@@ -53,57 +60,48 @@ func getFileExtension(mimeType string) (string, error) {
 	return mimeTypeSplits[1], nil
 }
 
-func downloadMedia(media patreon.Media, downloadDir string) (string, error) {
-	extension, err := getFileExtension(media.MimeType)
+func downloadMedia(media patreon.Media, downloadDir string) error {
+	downloadedFilePath, err := getMediaFile(downloadDir, media)
 	if err != nil {
-		return "", err
+		return err
 	}
-	downloadedFilePath := fmt.Sprintf("%s/%s.%s", downloadDir, media.ID, extension)
 
 	if _, err := os.Stat(downloadedFilePath); err == nil {
 		fmt.Printf("\t- skiped %s (already downloaded)\n", media.ID)
-		return downloadedFilePath, nil
+		return nil
 	}
 
 	response, err := http.Get(media.DownloadURL)
 	if err != nil {
-		return "", fmt.Errorf("failed to download media: %w", err)
+		return fmt.Errorf("failed to download media: %w", err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to download media: %s", response.Status)
+		return fmt.Errorf("failed to download media: %s", response.Status)
 	}
 
 	tempDownloadFilePath := downloadedFilePath + ".tmp"
 
 	out, err := os.Create(tempDownloadFilePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create file: %w", err)
+		return fmt.Errorf("failed to create file: %w", err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, response.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to write file: %w", err)
+		return fmt.Errorf("failed to write file: %w", err)
 	}
 
 	out.Close()
 
 	err = os.Rename(tempDownloadFilePath, downloadedFilePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to rename file: %w", err)
+		return fmt.Errorf("failed to rename file: %w", err)
 	}
 
 	fmt.Printf("\t- saved %s\n", media.ID)
-	return downloadedFilePath, nil
-}
-
-func adjustFileTime(file string, time time.Time) error {
-	err := os.Chtimes(file, time, time)
-	if err != nil {
-		return fmt.Errorf("failed to adjust file time: %w", err)
-	}
 	return nil
 }
 
@@ -118,11 +116,7 @@ func downloadPost(downloadDirectory string, post patreon.Post) error {
 	}
 
 	for _, media := range post.Media {
-		file, err := downloadMedia(media, downloadDirectory)
-		if err != nil {
-			return err
-		}
-		err = adjustFileTime(file, post.PublishedAt)
+		err := downloadMedia(media, downloadDirectory)
 		if err != nil {
 			return err
 		}
@@ -130,14 +124,50 @@ func downloadPost(downloadDirectory string, post patreon.Post) error {
 	return nil
 }
 
-func CrawlPosts(client *patreon.Client, downloadDir string, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int) error {
+func adjustPostsFileTime(downloadDirectory string, post patreon.Post) error {
+	if len(post.Media) == 0 {
+		return nil
+	}
+	for _, media := range post.Media {
+		file, err := getMediaFile(downloadDirectory, media)
+		if err != nil {
+			return err
+		}
+
+		_, err = os.Stat(file)
+		if err != nil {
+			// File does not exist
+			return nil
+		}
+
+		err = os.Chtimes(file, post.PublishedAt, post.PublishedAt)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getDownloadDir(baseDownloadDir, postTitle string, groupingStrategy GroupingStrategy) (string, error) {
+	switch groupingStrategy {
+	case GroupingStrategyByPost:
+		return fmt.Sprintf("%s/%s", baseDownloadDir, sanitizeFilename(postTitle)), nil
+	case GroupingStrategyNone:
+		return baseDownloadDir, nil
+	default:
+		return "", fmt.Errorf("invalid grouping strategy")
+	}
+}
+
+func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int) error {
 	posts := client.Posts()
 
 	postsDownloaded := 0
 	postsCrawled := 0
 	for post, err := range posts {
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		if postsDownloaded >= downloadLimit && downloadLimit != 0 {
@@ -148,31 +178,29 @@ func CrawlPosts(client *patreon.Client, downloadDir string, downloadInaccessible
 			fmt.Printf("[%d] Skipping post with no media '%s'\n", postsDownloaded, post.Title)
 			continue
 		}
+		downloadDir, err := getDownloadDir(baseDownloadDir, post.Title, groupingStrategy)
+		if err != nil {
+			return err
+		}
 
 		postsCrawled++
 
-		if !post.CurrentUserCanView && !downloadInaccessibleMedia {
-			fmt.Printf("[%d] Skipping inaccessible post '%s'\n", postsDownloaded, post.Title)
-			continue
+		if post.CurrentUserCanView || downloadInaccessibleMedia {
+			fmt.Printf("[%d] Saving post '%s'\n", postsDownloaded, post.Title)
+
+			err := downloadPost(downloadDir, post)
+			if err != nil {
+				return err
+			}
+
+			postsDownloaded++
 		}
 
-		fmt.Printf("[%d] Saving post '%s'\n", postsDownloaded, post.Title)
-
-		err = nil
-		switch groupingStrategy {
-		case GroupingStrategyByPost:
-			postDownloadDirectory := fmt.Sprintf("%s/%s", downloadDir, sanitizeFilename(post.Title))
-			err = downloadPost(postDownloadDirectory, post)
-		case GroupingStrategyNone:
-			err = downloadPost(downloadDir, post)
-		default:
-			panic("invalid grouping strategy")
-		}
+		// This can be done independent to downloading
+		err = adjustPostsFileTime(downloadDir, post)
 		if err != nil {
-			panic(err)
+			return err
 		}
-
-		postsDownloaded++
 	}
 	if postsCrawled == 0 {
 		fmt.Println("No posts found")
