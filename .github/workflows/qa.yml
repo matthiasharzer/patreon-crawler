@@ -28,7 +28,7 @@ jobs:
           go-version-file: ./go.mod
       - name: Run QA
         run:
-          make qa-server
+          make qa
       - name: Build artifacts
         env:
           GOMODCACHE: /tmp/go/pkg/mod

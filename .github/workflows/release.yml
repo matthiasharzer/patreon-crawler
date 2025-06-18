@@ -30,7 +30,7 @@ jobs:
         uses: thenativeweb/get-next-version@2.6.3
       - name: Run QA
         run:
-          make qa-server
+          make qa
       - name: Create new version
         if: ${{ steps.get_next_version.outputs.hasNextVersion == 'true' }}
         run: |
