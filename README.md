@@ -21,6 +21,8 @@ The simplest way to extract the cookies is by visiting the Patreon home page and
 3. Find a request starting with `current_user?include=....`. Click it a scroll to the `Request Headers` section.
 4. Copy the `Cookie` value to your clipboard.
 
+> To authenticate against `patreon.com` it's actually sufficient to copy the `session_id=<id>` cookie, however, passing the entire cookie string won't affect functionality.
+
 ### Using the tool
 
 To download all media from a creator, run the following command.
