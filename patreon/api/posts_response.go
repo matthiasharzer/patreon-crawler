@@ -1,6 +1,6 @@
 package api
 
-type Response struct {
+type PostsResponse struct {
 	Data     []ResponsePost    `json:"data"`
 	Includes []ResponseInclude `json:"included"`
 	Meta     ResponseMeta      `json:"meta"`

@@ -8,6 +8,7 @@ import (
 )
 
 func CrawlCreator(apiClient *api.Client, creatorID string, downloadDir string, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int) error {
+
 	creatorDownloadDir := fmt.Sprintf("%s/%s", downloadDir, sanitizeFilename(creatorID))
 
 	fmt.Printf("Downloading posts from %s to %s\n", creatorID, creatorDownloadDir)

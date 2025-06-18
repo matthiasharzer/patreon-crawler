@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 
 	"patreon-crawler/crawling"
@@ -39,19 +42,92 @@ func isGroupingStrategy(strategy crawling.GroupingStrategy) bool {
 	}
 }
 
-func getCookie() (string, error) {
-	if argCookie != "" {
-		return strings.TrimSpace(argCookie), nil
+func cookieCacheFile() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	tokenCacheDir := filepath.Join(usr.HomeDir, ".credentials")
+	err = os.MkdirAll(tokenCacheDir, 0700)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(tokenCacheDir,
+		url.QueryEscape("patreon.cookie")), nil
+}
+
+func saveCookieToFile(cookie string) error {
+	cookieFile, err := cookieCacheFile()
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(cookieFile, []byte(cookie), 0600)
+}
+
+func readCookieFromFile() (string, error) {
+	cookieFile, err := cookieCacheFile()
+	if err != nil {
+		return "", err
 	}
 
-	fmt.Println("Please enter your cookie from the patreon website: ")
-	reader := bufio.NewReader(os.Stdin)
-	cookieString, err := reader.ReadString('\n')
+	cookie, err := os.ReadFile(cookieFile)
 	if err != nil {
-		return "", fmt.Errorf("failed to read cookie: %w", err)
+		return "", err
 	}
-	cookieString = cookieString[:len(cookieString)-1]
-	return strings.TrimSpace(cookieString), nil
+	return string(cookie), nil
+}
+
+func readCookieFromStdin() (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	cookie, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(cookie), nil
+}
+
+func getAPIClientFromStdIn() (*api.Client, error) {
+	var apiClient *api.Client
+	var cookie string
+	var err error
+	authenticated := false
+
+	for !authenticated {
+		fmt.Println("Please enter your cookie from the patreon website: ")
+		cookie, err = readCookieFromStdin()
+		if err != nil {
+			return nil, err
+		}
+		apiClient = api.NewClient(cookie)
+		authenticated, err = apiClient.IsAuthenticated()
+		if err != nil {
+			return nil, err
+		}
+		if !authenticated {
+			fmt.Println("Unabled to authenticate with the provided cookie. Please try again.")
+		}
+	}
+
+	err = saveCookieToFile(cookie)
+	if err != nil {
+		return nil, err
+	}
+	return apiClient, nil
+}
+
+func getAPIClient() (*api.Client, error) {
+	cookie, err := readCookieFromFile()
+	if err != nil {
+		return getAPIClientFromStdIn()
+	}
+
+	apiClient := api.NewClient(cookie)
+	authenticated, err := apiClient.IsAuthenticated()
+	if authenticated {
+		return apiClient, nil
+	}
+
+	return getAPIClientFromStdIn()
 }
 
 func getDownloadDir() (string, error) {
@@ -92,16 +168,15 @@ func main() {
 		panic("invalid grouping strategy. Must be one of: none, by-post")
 	}
 
-	cookie, err := getCookie()
-	if err != nil {
-		panic(err)
-	}
 	downloadDir, err := getDownloadDir()
 	if err != nil {
 		panic(err)
 	}
 
-	apiClient := api.NewClient(cookie)
+	apiClient, err := getAPIClient()
+	if err != nil {
+		panic(err)
+	}
 
 	err = crawling.CrawlCreator(apiClient, argCreatorID, downloadDir, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit)
 	if err != nil {

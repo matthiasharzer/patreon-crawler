@@ -78,7 +78,7 @@ func (c *Client) GetCampaignID(creatorID string) (string, error) {
 	return matches[1], nil
 }
 
-func (c *Client) GetPosts(campaignID string, cursor *string) (Response, error) {
+func (c *Client) GetPosts(campaignID string, cursor *string) (PostsResponse, error) {
 	options := map[string]string{
 		"include":                          "attachments,images,media",
 		"fields[post]":                     "teaser_text,current_user_can_view,post_metadata,published_at,post_type,title,url,view_count",
@@ -95,14 +95,40 @@ func (c *Client) GetPosts(campaignID string, cursor *string) (Response, error) {
 
 	response, err := c.doAPIRequest("/posts", options)
 	if err != nil {
-		return Response{}, err
+		return PostsResponse{}, err
 	}
 
-	var postsResponse Response
+	var postsResponse PostsResponse
 	err = json.NewDecoder(response.Body).Decode(&postsResponse)
 	if err != nil {
-		return Response{}, err
+		return PostsResponse{}, err
 	}
 
 	return postsResponse, nil
+}
+
+func (c *Client) IsAuthenticated() (bool, error) {
+	options := map[string]string{
+		"include":          "active_memberships.campaign",
+		"fields[campaign]": "avatar_photo_image_urls,name,published_at,url,vanity,is_nsfw,url_for_current_user",
+		"fields[member]":   "is_free_member,is_free_trial",
+		"json-api-version": "1.0",
+	}
+
+	response, err := c.doAPIRequest("/current_user", options)
+	if err != nil {
+		return false, err
+	}
+
+	var userErrorResponse UserErrorResponse
+	err = json.NewDecoder(response.Body).Decode(&userErrorResponse)
+	if err != nil {
+		return false, err
+	}
+
+	if len(userErrorResponse.Errors) > 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
