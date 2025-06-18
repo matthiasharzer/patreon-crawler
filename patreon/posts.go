@@ -1,9 +1,12 @@
 package patreon
 
+import "time"
+
 type Post struct {
 	ID                 string
 	Title              string
 	Media              []Media
+	PublishedAt        time.Time
 	CurrentUserCanView bool
 }
 

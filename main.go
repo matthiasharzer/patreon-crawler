@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"patreon-crawler/patreon"
 	"patreon-crawler/patreon/api"
@@ -113,49 +114,57 @@ func getFileExtension(mimeType string) (string, error) {
 	return mimeTypeSplits[1], nil
 }
 
-func downloadMedia(media patreon.Media, downloadDir string) error {
+func downloadMedia(media patreon.Media, downloadDir string) (string, error) {
 	extension, err := getFileExtension(media.MimeType)
 	if err != nil {
-		return err
+		return "", err
 	}
 	downloadedFilePath := fmt.Sprintf("%s/%s.%s", downloadDir, media.ID, extension)
 
 	if _, err := os.Stat(downloadedFilePath); err == nil {
 		fmt.Printf("\t- skiped %s (already downloaded)\n", media.ID)
-		return nil
+		return downloadedFilePath, nil
 	}
 
 	response, err := http.Get(media.DownloadURL)
 	if err != nil {
-		return fmt.Errorf("failed to download media: %w", err)
+		return "", fmt.Errorf("failed to download media: %w", err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download media: %s", response.Status)
+		return "", fmt.Errorf("failed to download media: %s", response.Status)
 	}
 
 	tempDownloadFilePath := downloadedFilePath + ".tmp"
 
 	out, err := os.Create(tempDownloadFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
+		return "", fmt.Errorf("failed to create file: %w", err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, response.Body)
 	if err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
+		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
 	out.Close()
 
 	err = os.Rename(tempDownloadFilePath, downloadedFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to rename file: %w", err)
+		return "", fmt.Errorf("failed to rename file: %w", err)
 	}
 
 	fmt.Printf("\t- saved %s\n", media.ID)
+	return downloadedFilePath, nil
+}
+
+func adjustFileTime(file string, time time.Time) error {
+	err := os.Chtimes(file, time, time)
+	if err != nil {
+		return fmt.Errorf("failed to adjust file time: %w", err)
+	}
 	return nil
 }
 
@@ -170,7 +179,11 @@ func downloadPost(downloadDirectory string, post patreon.Post) error {
 	}
 
 	for _, media := range post.Media {
-		err := downloadMedia(media, downloadDirectory)
+		file, err := downloadMedia(media, downloadDirectory)
+		if err != nil {
+			return err
+		}
+		err = adjustFileTime(file, post.PublishedAt)
 		if err != nil {
 			return err
 		}

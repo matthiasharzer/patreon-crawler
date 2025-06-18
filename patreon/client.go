@@ -2,6 +2,7 @@ package patreon
 
 import (
 	"iter"
+	"time"
 
 	"patreon-crawler/patreon/api"
 )
@@ -65,10 +66,16 @@ func (c *Crawler) GetPosts(cursor string) ([]Post, string, error) {
 			media = append(media, m)
 		}
 
+		publishedAt, err := time.Parse(time.RFC3339, responsePost.Attributes.PublishedAt)
+		if err != nil {
+			return nil, "", err
+		}
+
 		posts = append(posts, Post{
 			ID:                 responsePost.ID,
 			Title:              responsePost.Attributes.Title,
 			Media:              media,
+			PublishedAt:        publishedAt,
 			CurrentUserCanView: responsePost.Attributes.CurrentUserCanView,
 		})
 	}
