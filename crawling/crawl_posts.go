@@ -66,8 +66,9 @@ func downloadMedia(media patreon.Media, downloadDir string) error {
 		return err
 	}
 
-	if _, err := os.Stat(downloadedFilePath); err == nil {
-		fmt.Printf("\t- skiped %s (already downloaded)\n", media.ID)
+	_, err = os.Stat(downloadedFilePath)
+	if err == nil {
+		fmt.Printf("\t- skipped %s (already downloaded)\n", media.ID)
 		return nil
 	}
 

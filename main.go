@@ -104,7 +104,7 @@ func getAPIClientFromStdIn() (*api.Client, string, error) {
 			return nil, "", err
 		}
 		if !authenticated {
-			fmt.Println("Unabled to authenticate with the provided cookie. Please try again.")
+			fmt.Println("Unable to authenticate with the provided cookie. Please try again.")
 		}
 	}
 
@@ -121,7 +121,7 @@ func getAPIClient() (*api.Client, error) {
 		if authenticated {
 			return apiClient, nil
 		}
-		return nil, fmt.Errorf("failed to authenticate with provided cookie provided via --cookie")
+		return nil, fmt.Errorf("failed to authenticate with provided cookie via --cookie")
 	}
 
 	cookie, err := readCookieFromFile()
