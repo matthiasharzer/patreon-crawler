@@ -86,7 +86,7 @@ func readCookieFromStdin() (string, error) {
 	return strings.TrimSpace(cookie), nil
 }
 
-func getAPIClientFromStdIn() (*api.Client, error) {
+func getAPIClientFromStdIn() (*api.Client, string, error) {
 	var apiClient *api.Client
 	var cookie string
 	var err error
@@ -96,38 +96,57 @@ func getAPIClientFromStdIn() (*api.Client, error) {
 		fmt.Println("Please enter your cookie from the patreon website: ")
 		cookie, err = readCookieFromStdin()
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		apiClient = api.NewClient(cookie)
 		authenticated, err = apiClient.IsAuthenticated()
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if !authenticated {
 			fmt.Println("Unabled to authenticate with the provided cookie. Please try again.")
 		}
 	}
 
+	return apiClient, cookie, nil
+}
+
+func getAPIClient() (*api.Client, error) {
+	if argCookie != "" {
+		apiClient := api.NewClient(argCookie)
+		authenticated, err := apiClient.IsAuthenticated()
+		if err != nil {
+			return nil, err
+		}
+		if authenticated {
+			return apiClient, nil
+		}
+		return nil, fmt.Errorf("failed to authenticate with provided cookie provided via --cookie")
+	}
+
+	cookie, err := readCookieFromFile()
+	if err == nil {
+		apiClient := api.NewClient(cookie)
+		authenticated, err := apiClient.IsAuthenticated()
+		if err != nil {
+			return nil, err
+		}
+		if authenticated {
+			return apiClient, nil
+		}
+	}
+
+	apiClient, cookie, err := getAPIClientFromStdIn()
+	if err != nil {
+		return nil, err
+	}
+
 	err = saveCookieToFile(cookie)
 	if err != nil {
 		return nil, err
 	}
+
 	return apiClient, nil
-}
-
-func getAPIClient() (*api.Client, error) {
-	cookie, err := readCookieFromFile()
-	if err != nil {
-		return getAPIClientFromStdIn()
-	}
-
-	apiClient := api.NewClient(cookie)
-	authenticated, err := apiClient.IsAuthenticated()
-	if authenticated {
-		return apiClient, nil
-	}
-
-	return getAPIClientFromStdIn()
 }
 
 func getDownloadDir() (string, error) {
