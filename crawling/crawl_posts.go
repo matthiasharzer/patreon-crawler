@@ -209,9 +209,9 @@ func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccess
 	downloadedFraction := float64(postsDownloaded) / float64(postsCrawled)
 	if downloadedFraction < 0.8 {
 		if postsDownloaded == 0 {
-			fmt.Printf("Warning: No posts were downloaded. Did you provide a valid cookie string?\n")
+			fmt.Printf("Warning: No posts were downloaded. Did you provide the correct creator ID?\n")
 		} else {
-			fmt.Printf("Warning: Only %f%% of posts were downloaded. Did you provide a valid cookie string?\n", downloadedFraction*100)
+			fmt.Printf("Warning: Only %f%% of posts were downloaded. Did you provide correct creator ID?\n", downloadedFraction*100)
 		}
 	}
 
