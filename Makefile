@@ -7,18 +7,24 @@ endif
 
 BUILD_VERSION ?= "unknown"
 
-build:
+clean:
 	@rm -rf build/
 
+build: clean
 	@GOOS=windows GOARCH=amd64 go build -o ./build/patreon-crawler.exe -ldflags "-X main.version=$(BUILD_VERSION)" ./main.go
 	@GOOS=linux GOARCH=amd64 go build -o ./build/patreon-crawler -ldflags "-X main.version=$(BUILD_VERSION)" ./main.go
 
-qa: analyze
+qa: analyze test
 
 analyze:
 	@go vet
 	@go run honnef.co/go/tools/cmd/staticcheck@latest --checks=all
 
+test:
+	@go test -failfast -cover ./...
+
 .PHONY: build \
 		analyze \
-		qa
+		qa \
+		test \
+		clean

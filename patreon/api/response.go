@@ -88,7 +88,7 @@ type ResponseUserAttributes struct {
 }
 
 type ResponseUserRelationShips struct {
-	Campaigns Response[ResponseReference] `json:"campaigns"`
+	Campaign Response[ResponseReference] `json:"campaign"`
 }
 
 type ResponseReward = ResponseEntity[ResponseRewardAttributes, ResponseRewardRelationships]
@@ -96,7 +96,7 @@ type ResponseReward = ResponseEntity[ResponseRewardAttributes, ResponseRewardRel
 type ResponseRewardAttributes struct {
 	Amount              int    `json:"amount"`
 	AmountCents         int    `json:"amount_cents"`
-	Remaining           any    `json:"remaining"`
+	Remaining           int    `json:"remaining"`
 	Description         string `json:"description"`
 	RequiresShipping    bool   `json:"requires_shipping"`
 	CreatedAt           string `json:"created_at"`

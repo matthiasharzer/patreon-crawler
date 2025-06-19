@@ -78,8 +78,10 @@ func (c *Client) GetCurrentUser() (UserResponse, error) {
 	if err != nil {
 		return UserResponse{}, err
 	}
+	defer response.Body.Close()
 
-	userResponse, err := unmarshalResponse[UserResponse](response)
+	var userResponse UserResponse
+	err = UnmarshalResponse(response.Body, &userResponse)
 	if err != nil {
 		return UserResponse{}, err
 	}
@@ -106,8 +108,10 @@ func (c *Client) GetPosts(campaignID string, cursor *string) (PostsResponse, err
 	if err != nil {
 		return PostsResponse{}, err
 	}
+	defer response.Body.Close()
 
-	postsResponse, err := unmarshalResponse[PostsResponse](response)
+	var postsResponse PostsResponse
+	err = UnmarshalResponse(response.Body, &postsResponse)
 	if err != nil {
 		return PostsResponse{}, err
 	}
