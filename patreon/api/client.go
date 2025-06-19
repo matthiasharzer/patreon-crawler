@@ -4,19 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"regexp"
 	"strings"
 )
 
-var patreonCampaignRegex = regexp.MustCompile(`patreon-media/p/campaign/(\d+)/.`)
-
 const apiURL = "https://www.patreon.com/api"
-
-func creatorURL(creatorID string) string {
-	return "https://www.patreon.com/" + creatorID
-}
 
 type Client struct {
 	cookie string
@@ -59,23 +51,40 @@ func (c *Client) doAPIRequest(path string, options map[string]string) (*http.Res
 }
 
 func (c *Client) GetCampaignID(creatorID string) (string, error) {
-	campaignURL := creatorURL(creatorID)
-	response, err := http.Get(campaignURL)
+	currentUser, err := c.GetCurrentUser()
 	if err != nil {
-		return "", fmt.Errorf("failed to get campaign ID: %s", err)
+		return "", err
 	}
 
-	body, err := io.ReadAll(response.Body)
+	for _, include := range currentUser.Included {
+		switch include := include.(type) {
+		case ResponseCampaign:
+			if strings.EqualFold(include.Attributes.Vanity, creatorID) {
+				return include.ID, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("failed to find campaign ID")
+}
+
+func (c *Client) GetCurrentUser() (UserResponse, error) {
+	options := map[string]string{
+		"include":          "active_memberships.campaign",
+		"fields[campaign]": "name,published_at,url,vanity",
+		"json-api-version": "1.0",
+	}
+	response, err := c.doAPIRequest("/current_user", options)
 	if err != nil {
-		return "", fmt.Errorf("failed to read campaign ID response: %s", err)
+		return UserResponse{}, err
 	}
 
-	matches := patreonCampaignRegex.FindStringSubmatch(string(body))
-	if len(matches) == 0 {
-		return "", fmt.Errorf("failed to find campaign ID")
+	userResponse, err := unmarshalResponse[UserResponse](response)
+	if err != nil {
+		return UserResponse{}, err
 	}
 
-	return matches[1], nil
+	return userResponse, nil
 }
 
 func (c *Client) GetPosts(campaignID string, cursor *string) (PostsResponse, error) {
@@ -98,8 +107,7 @@ func (c *Client) GetPosts(campaignID string, cursor *string) (PostsResponse, err
 		return PostsResponse{}, err
 	}
 
-	var postsResponse PostsResponse
-	err = json.NewDecoder(response.Body).Decode(&postsResponse)
+	postsResponse, err := unmarshalResponse[PostsResponse](response)
 	if err != nil {
 		return PostsResponse{}, err
 	}
@@ -108,25 +116,18 @@ func (c *Client) GetPosts(campaignID string, cursor *string) (PostsResponse, err
 }
 
 func (c *Client) IsAuthenticated() (bool, error) {
-	options := map[string]string{
-		"include":          "active_memberships.campaign",
-		"fields[campaign]": "avatar_photo_image_urls,name,published_at,url,vanity,is_nsfw,url_for_current_user",
-		"fields[member]":   "is_free_member,is_free_trial",
-		"json-api-version": "1.0",
-	}
-
-	response, err := c.doAPIRequest("/current_user", options)
+	response, err := c.doAPIRequest("/current_user", nil)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get current user: %w", err)
 	}
 
-	var userErrorResponse UserErrorResponse
-	err = json.NewDecoder(response.Body).Decode(&userErrorResponse)
+	var errorResponse ErrorResponse
+	err = json.NewDecoder(response.Body).Decode(&errorResponse)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if len(userErrorResponse.Errors) > 0 {
+	if len(errorResponse.Errors) > 0 {
 		return false, nil
 	}
 

@@ -23,29 +23,28 @@ func NewClient(apiClient *api.Client, creatorID string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) GetPosts(cursor string) ([]Post, string, error) {
+func (c *Client) getPosts(cursor string) ([]Post, string, error) {
 	postsResponse, err := c.apiClient.GetPosts(c.campaignID, &cursor)
 	if err != nil {
 		return nil, "", err
 	}
 
 	medias := make(map[string]Media)
-	for _, include := range postsResponse.Includes {
-		if include.Type != "media" {
-			continue
-		}
+	for _, include := range postsResponse.Included {
+		switch include := include.(type) {
+		case api.ResponseMedia:
+			downloadURL := include.Attributes.DownloadURL
+			if downloadURL == "" {
+				downloadURL = include.Attributes.ImageURLs.Original
+			}
 
-		downloadURL := include.Attributes.DownloadURL
-		if downloadURL == "" {
-			downloadURL = include.Attributes.ImageURLs.Original
-		}
-
-		medias[include.ID] = Media{
-			ID:          include.ID,
-			DownloadURL: downloadURL,
-			MimeType:    include.Attributes.MimeType,
-			Height:      include.Attributes.Metadata.Dimensions.H,
-			Width:       include.Attributes.Metadata.Dimensions.W,
+			medias[include.ID] = Media{
+				ID:          include.ID,
+				DownloadURL: downloadURL,
+				MimeType:    include.Attributes.MimeType,
+				Height:      include.Attributes.Metadata.Dimensions.H,
+				Width:       include.Attributes.Metadata.Dimensions.W,
+			}
 		}
 	}
 
@@ -89,7 +88,7 @@ func (c *Client) Posts() iter.Seq2[Post, error] {
 	return func(yield func(Post, error) bool) {
 		var cursor string
 		for {
-			posts, nextCursor, err := c.GetPosts(cursor)
+			posts, nextCursor, err := c.getPosts(cursor)
 			if err != nil {
 				yield(Post{}, err)
 				return
