@@ -39,12 +39,12 @@ If you do not wish do be prompted, you can also use the `--cookie` and `--downlo
 
 The `patreon-crawler` supports the following command line flags.
 
-| Argument                      | Description                                                                                                                                                                           |
-|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `creator`                     | The creator ID to download media from. You can find this in the URL when visiting a creators page: `patreon.com/c/<creator-id>/...`                                                   |
-| `cookie`                      | The cookie from the Patreon website to authenticate against the Patreon API                                                                                                           |
-| `download-dir`                | The base directory to download media to. All files will be located in `<download-dir>/<creator>`                                                                                      |
-| `download-limit`              | The maximum number of media files to download.                                                                                                                                        |
-| `download-inaccessible-media` | Whether to download media that is inaccessible (blurred images)                                                                                                                       |
-| `grouping`                    | The strategy for grouping post media into folders. <br>`none` - Puts all media into the same folder (per creator)<br>`by-post` - Creates a folder for each post, containing its media |
+| Argument                        | Description                                                                                                                                                                           |
+|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--creator <creator-id>`        | The creator ID to download media from. You can find this in the URL when visiting a creators page: `patreon.com/c/<creator-id>/...`                                                   |
+| `--cookie <cookie-string>`      | The cookie from the Patreon website to authenticate against the Patreon API                                                                                                           |
+| `--download-dir <directory>`    | The base directory to download media to. All files will be located in `<download-dir>/<creator>`                                                                                      |
+| `--download-limit <number>`     | The maximum number of media files to download.                                                                                                                                        |
+| `--download-inaccessible-media` | Whether to download media that is inaccessible (blurred images)                                                                                                                       |
+| `--grouping <none \| by-post>`  | The strategy for grouping post media into folders. <br>`none` - Puts all media into the same folder (per creator)<br>`by-post` - Creates a folder for each post, containing its media |
 

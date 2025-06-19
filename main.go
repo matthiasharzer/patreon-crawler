@@ -121,7 +121,7 @@ func getAPIClient() (*api.Client, error) {
 		if authenticated {
 			return apiClient, nil
 		}
-		return nil, fmt.Errorf("failed to authenticate with provided cookie via --cookie")
+		return nil, fmt.Errorf("failed to authenticate with cookie provided via --cookie")
 	}
 
 	cookie, err := readCookieFromFile()
@@ -170,7 +170,7 @@ func main() {
 		flag.PrintDefaults()
 
 		fmt.Println("\nUsage:")
-		fmt.Println("  patreon-crawler --creator <creator-dir> --download-dir <download directory>")
+		fmt.Println("  patreon-crawler --creator <creator-dir> --download-dir <directory>")
 		return
 	}
 
