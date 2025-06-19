@@ -124,6 +124,7 @@ func (c *Client) IsAuthenticated() (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("failed to get current user: %w", err)
 	}
+	defer response.Body.Close()
 
 	var errorResponse ErrorResponse
 	err = json.NewDecoder(response.Body).Decode(&errorResponse)
