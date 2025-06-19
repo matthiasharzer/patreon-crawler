@@ -170,7 +170,7 @@ func main() {
 		flag.PrintDefaults()
 
 		fmt.Println("\nUsage:")
-		fmt.Println("  patreon-crawler --creator <creator ID> --download-dir <download directory>")
+		fmt.Println("  patreon-crawler --creator <creator-dir> --download-dir <download directory>")
 		return
 	}
 
