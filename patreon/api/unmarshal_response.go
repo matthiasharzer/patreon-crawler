@@ -48,7 +48,12 @@ func UnmarshalEntity(entityData json.RawMessage) (any, error) {
 		target = t
 		break
 	default:
-		return nil, fmt.Errorf("unknown entity type: %s", unmarshalStruct.Type)
+		t := map[string]any{}
+		err = json.Unmarshal(entityData, &t)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal unknown entity type '%s': %w", unmarshalStruct.Type, err)
+		}
+		target = t
 	}
 
 	if err != nil {

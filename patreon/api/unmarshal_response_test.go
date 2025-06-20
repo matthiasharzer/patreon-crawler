@@ -384,10 +384,18 @@ var entity = struct {
 }
 
 func TestUnmarshalEntity(t *testing.T) {
-	t.Run("fails if unknown entity type is given", func(t *testing.T) {
-		entityBytes := []byte(`{"type": "unknown"}`)
-		_, err := UnmarshalEntity(entityBytes)
-		assert.ErrorContains(t, err, "unknown entity type")
+	t.Run("unmarshalls unknown entities into maps", func(t *testing.T) {
+		entityBytes := []byte(`{"type": "unknown", "id": "unknown-id", "attributes": {"key": "value"}}`)
+		unmarshalled, err := UnmarshalEntity(entityBytes)
+		require.NoError(t, err)
+
+		expected := map[string]any{
+			"type":       "unknown",
+			"id":         "unknown-id",
+			"attributes": map[string]any{"key": "value"},
+		}
+
+		assert.Equal(t, expected, unmarshalled)
 	})
 
 	t.Run("fails if entity bytes are not valid JSON", func(t *testing.T) {
