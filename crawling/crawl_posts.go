@@ -2,13 +2,12 @@ package crawling
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"regexp"
 	"slices"
 	"strings"
 
+	"patreon-crawler/crawling/download"
 	"patreon-crawler/patreon"
 )
 
@@ -43,94 +42,12 @@ func sanitizeFilename(name string) string {
 	return name
 }
 
-func getMediaFile(downloadDirectory string, media patreon.Media) (string, error) {
-	extension, err := getFileExtension(media.MimeType)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%s/%s.%s", downloadDirectory, media.ID, extension), nil
-}
-
-func getFileExtension(mimeType string) (string, error) {
-	// This is a very quick and dirty method, but it should work here
-	mimeTypeSplits := strings.Split(mimeType, "/")
-	if len(mimeTypeSplits) != 2 {
-		return "", fmt.Errorf("invalid mime type: %s", mimeType)
-	}
-	return mimeTypeSplits[1], nil
-}
-
-func downloadMedia(media patreon.Media, downloadDir string) error {
-	downloadedFilePath, err := getMediaFile(downloadDir, media)
-	if err != nil {
-		return err
-	}
-
-	_, err = os.Stat(downloadedFilePath)
-	if err == nil {
-		fmt.Printf("\t- skipped %s (already downloaded)\n", media.ID)
-		return nil
-	}
-
-	response, err := http.Get(media.DownloadURL)
-	if err != nil {
-		return fmt.Errorf("failed to download media: %w", err)
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download media: %s", response.Status)
-	}
-
-	tempDownloadFilePath := downloadedFilePath + ".tmp"
-
-	out, err := os.Create(tempDownloadFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, response.Body)
-	if err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
-	}
-
-	out.Close()
-
-	err = os.Rename(tempDownloadFilePath, downloadedFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to rename file: %w", err)
-	}
-
-	fmt.Printf("\t- saved %s\n", media.ID)
-	return nil
-}
-
-func downloadPost(downloadDirectory string, post patreon.Post) error {
-	if len(post.Media) == 0 {
-		return nil
-	}
-
-	err := os.MkdirAll(downloadDirectory, 0700)
-	if err != nil {
-		return fmt.Errorf("failed to create download directory: %w", err)
-	}
-
-	for _, media := range post.Media {
-		err := downloadMedia(media, downloadDirectory)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func adjustPostsFileTime(downloadDirectory string, post patreon.Post) error {
 	if len(post.Media) == 0 {
 		return nil
 	}
 	for _, media := range post.Media {
-		file, err := getMediaFile(downloadDirectory, media)
+		file, err := download.GetMediaFile(downloadDirectory, media)
 		if err != nil {
 			return err
 		}
@@ -161,6 +78,28 @@ func getDownloadDir(baseDownloadDir, postTitle string, groupingStrategy Grouping
 	}
 }
 
+func savePost(post patreon.Post, postsDownloaded int, downloadDir string) error {
+	fmt.Printf("[%d] Saving post '%s'\n", postsDownloaded, post.Title)
+
+	err := os.MkdirAll(downloadDir, 0700)
+	if err != nil {
+		return err
+	}
+
+	report := download.Post(downloadDir, post)
+	for item := range report {
+		switch item.Status() {
+		case download.ReportStatusError:
+			fmt.Printf("\t- [error] %s: %s\n", item.Media().ID, item.Error())
+		case download.ReportStatusSkipped:
+			fmt.Printf("\t- [skipped] %s: %s\n", item.Media().ID, item.Message())
+		case download.ReportStatusSuccess:
+			fmt.Printf("\t- [downloaded] %s\n", item.Media().ID)
+		}
+	}
+	return nil
+}
+
 func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int) error {
 	posts := client.Posts()
 
@@ -187,9 +126,7 @@ func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccess
 		postsCrawled++
 
 		if post.CurrentUserCanView || downloadInaccessibleMedia {
-			fmt.Printf("[%d] Saving post '%s'\n", postsDownloaded, post.Title)
-
-			err := downloadPost(downloadDir, post)
+			err := savePost(post, postsDownloaded, downloadDir)
 			if err != nil {
 				return err
 			}
