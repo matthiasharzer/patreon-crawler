@@ -47,4 +47,3 @@ func NewSkippedItem(media patreon.Media, message string) ReportItem {
 	}
 }
 
-type ReportStream <-chan ReportItem
