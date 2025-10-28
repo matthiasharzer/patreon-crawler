@@ -88,13 +88,13 @@ func savePost(post patreon.Post, postsDownloaded int, downloadDir string) error 
 
 	report := download.Post(downloadDir, post)
 	for item := range report {
-		switch item.Status() {
-		case download.ReportStatusError:
-			fmt.Printf("\t- [error] %s: %s\n", item.Media().ID, item.Error())
-		case download.ReportStatusSkipped:
-			fmt.Printf("\t- [skipped] %s: %s\n", item.Media().ID, item.Message())
-		case download.ReportStatusSuccess:
-			fmt.Printf("\t- [downloaded] %s\n", item.Media().ID)
+		switch item := item.(type) {
+		case *download.ReportErrorItem:
+			fmt.Printf("\t[error] %s: %s\n", item.Media.ID, item.Err)
+		case *download.ReportSkippedItem:
+			fmt.Printf("\t[skipped] %s (%s)\n", item.Media.ID, item.Reason)
+		case *download.ReportSuccessItem:
+			fmt.Printf("\t[downloaded] %s\n", item.Media.ID)
 		}
 	}
 	return nil

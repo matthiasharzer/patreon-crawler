@@ -3,6 +3,7 @@ package download
 import (
 	"fmt"
 	"io"
+	"iter"
 	"net/http"
 	"os"
 	"strings"
@@ -71,27 +72,25 @@ func downloadMedia(media patreon.Media, downloadDir string) ReportItem {
 	return NewSuccessItem(media)
 }
 
-func Post(downloadDirectory string, post patreon.Post) ReportStream {
-	report := make(chan ReportItem)
-
-	go func() {
-		defer close(report)
-
+func Post(downloadDirectory string, post patreon.Post) iter.Seq[ReportItem] {
+	return func(yield func(ReportItem) bool) {
 		if len(post.Media) == 0 {
 			return
 		}
 
 		for _, media := range post.Media {
 			if media.MimeType == "" {
-				report <- NewSkippedItem(media, "no mime type")
+				item := NewSkippedItem(media, "no mime type")
+				if !yield(item) {
+					return
+				}
 				continue
 			}
 
-			reportItem := downloadMedia(media, downloadDirectory)
-
-			report <- reportItem
+			item := downloadMedia(media, downloadDirectory)
+			if !yield(item) {
+				return
+			}
 		}
-	}()
-
-	return report
+	}
 }

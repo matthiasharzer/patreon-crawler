@@ -2,64 +2,48 @@ package download
 
 import "patreon-crawler/patreon"
 
-type ReportStatus string
-
-const (
-	ReportStatusSuccess ReportStatus = "success"
-	ReportStatusSkipped ReportStatus = "skipped"
-	ReportStatusError   ReportStatus = "error"
-)
-
 type ReportItem interface {
-	Media() patreon.Media
-	Status() ReportStatus
-	Message() string
-	Error() error
+	ReportItem()
 }
 
-type mediaReportItem struct {
-	media   patreon.Media
-	status  ReportStatus
-	message string
-	err     error
+type reportItem struct{}
+
+func (m *reportItem) ReportItem() {}
+
+type ReportSuccessItem struct {
+	reportItem
+	Media patreon.Media
 }
 
-func (m *mediaReportItem) Media() patreon.Media {
-	return m.media
+type ReportSkippedItem struct {
+	reportItem
+	Media  patreon.Media
+	Reason string
 }
 
-func (m *mediaReportItem) Status() ReportStatus {
-	return m.status
-}
-
-func (m *mediaReportItem) Message() string {
-	return m.message
-}
-
-func (m *mediaReportItem) Error() error {
-	return m.err
+type ReportErrorItem struct {
+	reportItem
+	Media patreon.Media
+	Err   error
 }
 
 func NewSuccessItem(media patreon.Media) ReportItem {
-	return &mediaReportItem{
-		media:  media,
-		status: ReportStatusSuccess,
+	return &ReportSuccessItem{
+		Media: media,
 	}
 }
 
 func NewErrorItem(media patreon.Media, err error) ReportItem {
-	return &mediaReportItem{
-		media:  media,
-		status: ReportStatusError,
-		err:    err,
+	return &ReportErrorItem{
+		Media: media,
+		Err:   err,
 	}
 }
 
 func NewSkippedItem(media patreon.Media, message string) ReportItem {
-	return &mediaReportItem{
-		media:   media,
-		message: message,
-		status:  ReportStatusSkipped,
+	return &ReportSkippedItem{
+		Media:  media,
+		Reason: message,
 	}
 }
 
