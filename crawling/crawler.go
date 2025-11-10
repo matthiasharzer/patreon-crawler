@@ -2,14 +2,17 @@ package crawling
 
 import (
 	"fmt"
+	"iter"
 	"os"
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"patreon-crawler/crawling/download"
 	"patreon-crawler/patreon"
 	"patreon-crawler/patreon/api"
+	"patreon-crawler/queue"
 )
 
 type GroupingStrategy string
@@ -43,26 +46,21 @@ func sanitizeFilename(name string) string {
 	return name
 }
 
-func adjustPostsFileTime(downloadDirectory string, post patreon.Post) error {
-	if len(post.Media) == 0 {
+func adjustMediaFileTime(downloadDirectory string, media patreon.Media, publishedAt time.Time) error {
+	file, err := download.GetMediaFile(downloadDirectory, media)
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(file)
+	if err != nil {
+		// File does not exist
 		return nil
 	}
-	for _, media := range post.Media {
-		file, err := download.GetMediaFile(downloadDirectory, media)
-		if err != nil {
-			return err
-		}
 
-		_, err = os.Stat(file)
-		if err != nil {
-			// File does not exist
-			return nil
-		}
-
-		err = os.Chtimes(file, post.PublishedAt, post.PublishedAt)
-		if err != nil {
-			return err
-		}
+	err = os.Chtimes(file, publishedAt, publishedAt)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -79,26 +77,9 @@ func getDownloadDir(baseDownloadDir, postTitle string, groupingStrategy Grouping
 	}
 }
 
-func savePost(post patreon.Post, postsDownloaded int, downloadDir string) error {
-	fmt.Printf("[%d] Saving post '%s'\n", postsDownloaded, post.Title)
-
-	err := os.MkdirAll(downloadDir, 0700)
-	if err != nil {
-		return err
-	}
-
-	report := download.Post(downloadDir, post)
-	for item := range report {
-		switch item := item.(type) {
-		case *download.ReportErrorItem:
-			fmt.Printf("\t[error] %s: %s\n", item.Media.ID, item.Err)
-		case *download.ReportSkippedItem:
-			fmt.Printf("\t[skipped] %s (%s)\n", item.Media.ID, item.Reason)
-		case *download.ReportSuccessItem:
-			fmt.Printf("\t[downloaded] %s\n", item.Media.ID)
-		}
-	}
-	return nil
+type mediaPair struct {
+	post  patreon.Post
+	media patreon.Media
 }
 
 type Crawler struct {
@@ -106,73 +87,88 @@ type Crawler struct {
 	downloadInaccessibleMedia bool
 	groupingStrategy          GroupingStrategy
 	downloadLimit             int
+	concurrencyLimit          int
 }
 
-func NewCrawler(apiClient *api.Client, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int) *Crawler {
+func NewCrawler(apiClient *api.Client, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int, concurrencyLimit int) *Crawler {
 	return &Crawler{
 		apiClient:                 apiClient,
 		downloadInaccessibleMedia: downloadInaccessibleMedia,
 		groupingStrategy:          groupingStrategy,
 		downloadLimit:             downloadLimit,
+		concurrencyLimit:          concurrencyLimit,
 	}
+}
+
+func (c *Crawler) enumerateMedia(posts iter.Seq2[patreon.Post, error]) iter.Seq2[mediaPair, error] {
+	return func(yield func(mediaPair, error) bool) {
+		for post, err := range posts {
+			if err != nil {
+				if !yield(mediaPair{}, err) {
+					return
+				}
+				continue
+			}
+
+			if !post.CurrentUserCanView && !c.downloadInaccessibleMedia {
+				continue
+			}
+
+			for _, media := range post.Media {
+				if !yield(mediaPair{post: post, media: media}, nil) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (c *Crawler) downloadMedia(media patreon.Media, downloadDir string, parentPost patreon.Post) error {
+	reportItem := download.Media(media, downloadDir)
+	switch item := reportItem.(type) {
+	case *download.ReportErrorItem:
+		fmt.Printf("\t[error] %s from `%s`: %s\n", item.Media.ID, parentPost.Title, item.Err)
+	case *download.ReportSkippedItem:
+		fmt.Printf("\t[skipped] %s from `%s` (%s)\n", item.Media.ID, parentPost.Title, item.Reason)
+	case *download.ReportSuccessItem:
+		fmt.Printf("\t[downloaded] %s from `%s`\n", item.Media.ID, parentPost.Title)
+	}
+	err := adjustMediaFileTime(downloadDir, media, parentPost.PublishedAt)
+	if err != nil {
+		fmt.Printf("\t[error] adjusting file time for %s from %s: %s\n", media.ID, parentPost.Title, err)
+	}
+	return nil
 }
 
 func (c *Crawler) CrawlPosts(client *patreon.Client, baseDownloadDir string) error {
 	posts := client.Posts()
+	media := c.enumerateMedia(posts)
 
-	postsDownloaded := 0
-	postsCrawled := 0
-	for post, err := range posts {
+	q := queue.New[patreon.Media](c.concurrencyLimit)
+	discoveredMediaCount := 0
+
+	for pair, err := range media {
 		if err != nil {
 			return err
 		}
 
-		if postsDownloaded >= c.downloadLimit && c.downloadLimit != 0 {
-			break
-		}
-
-		if len(post.Media) == 0 {
-			fmt.Printf("[%d] Skipping post with no media '%s'\n", postsDownloaded, post.Title)
-			continue
-		}
-		downloadDir, err := getDownloadDir(baseDownloadDir, post.Title, c.groupingStrategy)
+		downloadDir, err := getDownloadDir(baseDownloadDir, pair.post.Title, c.groupingStrategy)
 		if err != nil {
 			return err
 		}
 
-		postsCrawled++
+		q.Enqueue(pair.media, func(media patreon.Media) error {
+			return c.downloadMedia(media, downloadDir, pair.post)
+		})
 
-		if post.CurrentUserCanView || c.downloadInaccessibleMedia {
-			err := savePost(post, postsDownloaded, downloadDir)
-			if err != nil {
-				return err
-			}
-
-			postsDownloaded++
-		} else {
-			fmt.Printf("[%d] Skipping post '%s' (inaccessible media)\n", postsDownloaded, post.Title)
-		}
-
-		// This can be done independent to downloading
-		err = adjustPostsFileTime(downloadDir, post)
-		if err != nil {
-			return err
-		}
-	}
-	if postsCrawled == 0 {
-		fmt.Println("No posts found")
+		discoveredMediaCount++
 	}
 
-	downloadedFraction := float64(postsDownloaded) / float64(postsCrawled)
-	if downloadedFraction < 0.8 {
-		if postsDownloaded == 0 {
-			fmt.Printf("Warning: No posts were downloaded. Did you provide the correct creator ID?\n")
-		} else {
-			fmt.Printf("Warning: Only %f%% of posts were downloaded. Did you provide correct creator ID?\n", downloadedFraction*100)
-		}
-	}
+	fmt.Printf("Discovered %d media items to download.\n", discoveredMediaCount)
 
-	return nil
+	err := q.ProcessAll()
+
+	return err
 }
 
 func (c *Crawler) CrawlCreator(creatorID string, downloadDir string) error {
