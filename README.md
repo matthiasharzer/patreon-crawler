@@ -49,4 +49,5 @@ The `patreon-crawler` supports the following command line flags.
 | `--download-limit <number>`     | The maximum number of posts to download.                                                                                                                                              |
 | `--download-inaccessible-media` | Whether to download media that is inaccessible (blurred images)                                                                                                                       |
 | `--grouping <none \| by-post>`  | The strategy for grouping post media into folders. <br>`none` - Puts all media into the same folder (per creator)<br>`by-post` - Creates a folder for each post, containing its media |
+| `--concurrency <number>`        | The number of concurrent downloads to perform (default `3`)                                                                                                                           |
 
