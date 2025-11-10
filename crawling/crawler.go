@@ -9,6 +9,7 @@ import (
 
 	"patreon-crawler/crawling/download"
 	"patreon-crawler/patreon"
+	"patreon-crawler/patreon/api"
 )
 
 type GroupingStrategy string
@@ -100,7 +101,23 @@ func savePost(post patreon.Post, postsDownloaded int, downloadDir string) error 
 	return nil
 }
 
-func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int) error {
+type Crawler struct {
+	apiClient                 *api.Client
+	downloadInaccessibleMedia bool
+	groupingStrategy          GroupingStrategy
+	downloadLimit             int
+}
+
+func NewCrawler(apiClient *api.Client, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int) *Crawler {
+	return &Crawler{
+		apiClient:                 apiClient,
+		downloadInaccessibleMedia: downloadInaccessibleMedia,
+		groupingStrategy:          groupingStrategy,
+		downloadLimit:             downloadLimit,
+	}
+}
+
+func (c *Crawler) CrawlPosts(client *patreon.Client, baseDownloadDir string) error {
 	posts := client.Posts()
 
 	postsDownloaded := 0
@@ -110,7 +127,7 @@ func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccess
 			return err
 		}
 
-		if postsDownloaded >= downloadLimit && downloadLimit != 0 {
+		if postsDownloaded >= c.downloadLimit && c.downloadLimit != 0 {
 			break
 		}
 
@@ -118,14 +135,14 @@ func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccess
 			fmt.Printf("[%d] Skipping post with no media '%s'\n", postsDownloaded, post.Title)
 			continue
 		}
-		downloadDir, err := getDownloadDir(baseDownloadDir, post.Title, groupingStrategy)
+		downloadDir, err := getDownloadDir(baseDownloadDir, post.Title, c.groupingStrategy)
 		if err != nil {
 			return err
 		}
 
 		postsCrawled++
 
-		if post.CurrentUserCanView || downloadInaccessibleMedia {
+		if post.CurrentUserCanView || c.downloadInaccessibleMedia {
 			err := savePost(post, postsDownloaded, downloadDir)
 			if err != nil {
 				return err
@@ -153,6 +170,24 @@ func CrawlPosts(client *patreon.Client, baseDownloadDir string, downloadInaccess
 		} else {
 			fmt.Printf("Warning: Only %f%% of posts were downloaded. Did you provide correct creator ID?\n", downloadedFraction*100)
 		}
+	}
+
+	return nil
+}
+
+func (c *Crawler) CrawlCreator(creatorID string, downloadDir string) error {
+	creatorDownloadDir := fmt.Sprintf("%s/%s", downloadDir, sanitizeFilename(creatorID))
+
+	fmt.Printf("Downloading posts from %s to %s\n", creatorID, creatorDownloadDir)
+
+	client, err := patreon.NewClient(c.apiClient, creatorID)
+	if err != nil {
+		return err
+	}
+
+	err = c.CrawlPosts(client, creatorDownloadDir)
+	if err != nil {
+		return err
 	}
 
 	return nil
