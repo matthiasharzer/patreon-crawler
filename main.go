@@ -199,7 +199,7 @@ func main() {
 		panic(err)
 	}
 
-	crawler := crawling.NewCrawler(apiClient, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit, argConcurrencyLimit)
+	crawler := crawling.NewCrawler(apiClient, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit, 4)
 
 	err = crawler.CrawlCreator(argCreatorID, downloadDir)
 	if err != nil {

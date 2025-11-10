@@ -1,6 +1,9 @@
 package queue
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
 
 type Item[T any] struct {
 	value   T
@@ -15,11 +18,14 @@ type Queue[T any] struct {
 	errMutex         sync.RWMutex
 }
 
-func New[T any](concurrencyLimit int) *Queue[T] {
+func New[T any](concurrencyLimit int) (*Queue[T], error) {
+	if concurrencyLimit < 1 {
+		return nil, errors.New("concurrency limit must be greater than zero")
+	}
 	return &Queue[T]{
 		items:            make([]Item[T], 0),
 		concurrencyLimit: concurrencyLimit,
-	}
+	}, nil
 }
 
 func (q *Queue[T]) next() (Item[T], bool) {

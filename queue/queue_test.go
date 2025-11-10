@@ -19,7 +19,8 @@ func TestQueue(t *testing.T) {
 		processed := make([]int, 0, len(items))
 		var mu sync.Mutex
 
-		q1 := queue.New[int](1)
+		q1, err := queue.New[int](1)
+		require.NoError(t, err)
 		for _, it := range items {
 			it := it
 			q1.Enqueue(it, func(v int) error {
@@ -30,7 +31,7 @@ func TestQueue(t *testing.T) {
 			})
 		}
 
-		err := q1.ProcessAll()
+		err = q1.ProcessAll()
 		require.NoError(t, err)
 
 		require.Equal(t, len(items), len(processed))
@@ -43,7 +44,8 @@ func TestQueue(t *testing.T) {
 		counts := make(map[int]int, n)
 		var mu2 sync.Mutex
 
-		q2 := queue.New[int](conc)
+		q2, err := queue.New[int](conc)
+		require.NoError(t, err)
 		for i := 0; i < n; i++ {
 			i := i
 			q2.Enqueue(i, func(v int) error {
@@ -54,7 +56,7 @@ func TestQueue(t *testing.T) {
 			})
 		}
 
-		err := q2.ProcessAll()
+		err = q2.ProcessAll()
 		require.NoError(t, err)
 
 		require.Equal(t, n, len(counts))
@@ -68,7 +70,8 @@ func TestQueue(t *testing.T) {
 		var processedCount int32
 		failOn := 30
 
-		q3 := queue.New[int](1)
+		q3, err := queue.New[int](1)
+		require.NoError(t, err)
 		for _, it := range errorItems {
 			it := it
 			q3.Enqueue(it, func(v int) error {
@@ -80,7 +83,7 @@ func TestQueue(t *testing.T) {
 			})
 		}
 
-		err := q3.ProcessAll()
+		err = q3.ProcessAll()
 		require.Error(t, err)
 
 		assert.Equal(t, int32(3), processedCount)
@@ -93,7 +96,8 @@ func TestQueue(t *testing.T) {
 		var maxActive int32
 		var mu3 sync.Mutex
 
-		q4 := queue.New[int](concLimit)
+		q4, err := queue.New[int](concLimit)
+		require.NoError(t, err)
 		for i := 0; i < nParallel; i++ {
 			q4.Enqueue(i, func(v int) error {
 				cur := atomic.AddInt32(&active, 1)
@@ -108,15 +112,62 @@ func TestQueue(t *testing.T) {
 			})
 		}
 
-		err := q4.ProcessAll()
+		err = q4.ProcessAll()
 		require.NoError(t, err)
 
 		assert.LessOrEqual(t, int(maxActive), concLimit)
 	})
 
 	t.Run("empty queue returns nil error", func(t *testing.T) {
-		q5 := queue.New[int](3)
-		err := q5.ProcessAll()
+		q5, err := queue.New[int](3)
+		require.NoError(t, err)
+		err = q5.ProcessAll()
 		assert.NoError(t, err)
+	})
+
+	t.Run("concurrency > 1 error propagation stops further processing", func(t *testing.T) {
+		itemCount := 50
+		failOn := 0
+		conc := 6
+		counts := make(map[int]int, itemCount)
+		var mu sync.Mutex
+		q, err := queue.New[int](conc)
+		require.NoError(t, err)
+
+		for i := 0; i < itemCount; i++ {
+			i := i
+			q.Enqueue(i, func(v int) error {
+				mu.Lock()
+				counts[v]++
+				mu.Unlock()
+				if v == failOn {
+					return errors.New("boom")
+				}
+				time.Sleep(2 * time.Millisecond)
+				return nil
+			})
+		}
+
+		err = q.ProcessAll()
+		require.Error(t, err)
+
+		require.Equal(t, 1, counts[failOn])
+		for i := 0; i < itemCount; i++ {
+			assert.LessOrEqual(t, counts[i], 1, "item %d processed more than once", i)
+		}
+		unprocessedExists := false
+		for i := failOn + 1; i < itemCount; i++ {
+			if counts[i] == 0 {
+				unprocessedExists = true
+				break
+			}
+		}
+		assert.True(t, unprocessedExists, "expected some items to remain unprocessed after error")
+	})
+
+	t.Run("invalid concurrency returns error", func(t *testing.T) {
+		q, err := queue.New[int](0)
+		require.Error(t, err)
+		assert.Nil(t, q)
 	})
 }

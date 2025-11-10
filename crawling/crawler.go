@@ -123,7 +123,12 @@ func (c *Crawler) enumerateMedia(posts iter.Seq2[patreon.Post, error]) iter.Seq2
 	}
 }
 
-func (c *Crawler) downloadMedia(media patreon.Media, downloadDir string, parentPost patreon.Post) error {
+func (c *Crawler) downloadMedia(media patreon.Media, baseDownloadDir string, parentPost patreon.Post) error {
+	downloadDir, err := getDownloadDir(baseDownloadDir, parentPost.Title, c.groupingStrategy)
+	if err != nil {
+		return err
+	}
+
 	reportItem := download.Media(media, downloadDir)
 	switch item := reportItem.(type) {
 	case *download.ReportErrorItem:
@@ -133,7 +138,8 @@ func (c *Crawler) downloadMedia(media patreon.Media, downloadDir string, parentP
 	case *download.ReportSuccessItem:
 		fmt.Printf("\t[downloaded] %s from `%s`\n", item.Media.ID, parentPost.Title)
 	}
-	err := adjustMediaFileTime(downloadDir, media, parentPost.PublishedAt)
+
+	err = adjustMediaFileTime(downloadDir, media, parentPost.PublishedAt)
 	if err != nil {
 		fmt.Printf("\t[error] adjusting file time for %s from %s: %s\n", media.ID, parentPost.Title, err)
 	}
@@ -144,29 +150,32 @@ func (c *Crawler) CrawlPosts(client *patreon.Client, baseDownloadDir string) err
 	posts := client.Posts()
 	media := c.enumerateMedia(posts)
 
-	q := queue.New[patreon.Media](c.concurrencyLimit)
+	q, err := queue.New[patreon.Media](c.concurrencyLimit)
 	discoveredMediaCount := 0
+
+	if err != nil {
+		return err
+	}
 
 	for pair, err := range media {
 		if err != nil {
 			return err
 		}
 
-		downloadDir, err := getDownloadDir(baseDownloadDir, pair.post.Title, c.groupingStrategy)
-		if err != nil {
-			return err
-		}
-
+		parentPost := pair.post
 		q.Enqueue(pair.media, func(media patreon.Media) error {
-			return c.downloadMedia(media, downloadDir, pair.post)
+			return c.downloadMedia(media, baseDownloadDir, parentPost)
 		})
 
 		discoveredMediaCount++
+		if c.downloadLimit > 0 && discoveredMediaCount >= c.downloadLimit {
+			break
+		}
 	}
 
 	fmt.Printf("Discovered %d media items to download.\n", discoveredMediaCount)
 
-	err := q.ProcessAll()
+	err = q.ProcessAll()
 
 	return err
 }

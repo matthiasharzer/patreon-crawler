@@ -28,6 +28,10 @@ func getFileExtension(mimeType string) (string, error) {
 }
 
 func Media(media patreon.Media, downloadDir string) ReportItem {
+	if media.MimeType == "" {
+		return NewSkippedItem(media, "no mime type")
+	}
+
 	downloadedFilePath, err := GetMediaFile(downloadDir, media)
 	if err != nil {
 		return NewErrorItem(media, err)
@@ -48,14 +52,9 @@ func Media(media patreon.Media, downloadDir string) ReportItem {
 		return NewErrorItem(media, fmt.Errorf("unexpected status code: %s", response.Status))
 	}
 
-	_, err = os.Stat(downloadDir)
-	if os.IsNotExist(err) {
-		err = os.MkdirAll(downloadDir, os.ModePerm)
-		if err != nil {
-			return NewErrorItem(media, fmt.Errorf("failed to create directory: %w", err))
-		}
-	} else if err != nil {
-		return NewErrorItem(media, fmt.Errorf("failed to stat directory: %w", err))
+	err = os.MkdirAll(downloadDir, os.ModePerm)
+	if err != nil {
+		return NewErrorItem(media, fmt.Errorf("failed to create directory: %w", err))
 	}
 
 	tempDownloadFilePath := downloadedFilePath + ".tmp"
