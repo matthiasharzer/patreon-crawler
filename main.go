@@ -179,6 +179,12 @@ func main() {
 	if argCreatorID == "" {
 		panic("creator ID is required")
 	}
+	if argDownloadLimit < 0 {
+		panic("download limit must be non-negative")
+	}
+	if argConcurrencyLimit <= 0 {
+		panic("concurrency limit must be positive")
+	}
 
 	var groupingStrategy crawling.GroupingStrategy
 	if argGroupingStrategy == "" {
@@ -199,7 +205,7 @@ func main() {
 		panic(err)
 	}
 
-	crawler := crawling.NewCrawler(apiClient, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit, 4)
+	crawler := crawling.NewCrawler(apiClient, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit, argConcurrencyLimit)
 
 	err = crawler.CrawlCreator(argCreatorID, downloadDir)
 	if err != nil {
