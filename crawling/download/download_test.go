@@ -20,11 +20,13 @@ func TestDownload(t *testing.T) {
 		url, cleanup := testutils.HTTPServer(map[string]http.HandlerFunc{
 			"/media1.jpg": func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("media1 content"))
+				_, err := w.Write([]byte("media1 content"))
+				require.NoError(t, err)
 			},
 			"/media2.png": func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("media2 content"))
+				_, err := w.Write([]byte("media2 content"))
+				require.NoError(t, err)
 			},
 		})
 		defer cleanup()
