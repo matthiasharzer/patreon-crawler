@@ -1,6 +1,6 @@
 package download
 
-import "patreon-crawler/patreon"
+import "github.com/MatthiasHarzer/patreon-crawler/patreon"
 
 type ReportItem interface {
 	ReportItem()
@@ -46,4 +46,3 @@ func NewSkippedItem(media patreon.Media, message string) ReportItem {
 		Reason: message,
 	}
 }
-

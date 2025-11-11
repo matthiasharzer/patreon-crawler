@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"patreon-crawler/patreon"
+	"github.com/MatthiasHarzer/patreon-crawler/patreon"
 )
 
 func GetMediaFile(downloadDirectory string, media patreon.Media) (string, error) {

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"patreon-crawler/crawling/download"
-	"patreon-crawler/patreon"
-	"patreon-crawler/patreon/api"
-	"patreon-crawler/queue"
+	"github.com/MatthiasHarzer/patreon-crawler/crawling/download"
+	"github.com/MatthiasHarzer/patreon-crawler/patreon"
+	"github.com/MatthiasHarzer/patreon-crawler/patreon/api"
+	"github.com/MatthiasHarzer/patreon-crawler/queue"
 )
 
 type GroupingStrategy string

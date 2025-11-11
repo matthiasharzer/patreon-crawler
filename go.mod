@@ -1,4 +1,4 @@
-module patreon-crawler
+module github.com/MatthiasHarzer/patreon-crawler
 
 go 1.25.0
 

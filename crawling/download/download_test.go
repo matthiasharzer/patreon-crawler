@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"patreon-crawler/crawling/download"
-	"patreon-crawler/patreon"
-	"patreon-crawler/util/fsutils"
-	"patreon-crawler/util/testutils"
+	"github.com/MatthiasHarzer/patreon-crawler/crawling/download"
+	"github.com/MatthiasHarzer/patreon-crawler/patreon"
+	"github.com/MatthiasHarzer/patreon-crawler/util/fsutils"
+	"github.com/MatthiasHarzer/patreon-crawler/util/testutils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

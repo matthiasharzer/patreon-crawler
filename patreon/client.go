@@ -4,7 +4,7 @@ import (
 	"iter"
 	"time"
 
-	"patreon-crawler/patreon/api"
+	"github.com/MatthiasHarzer/patreon-crawler/patreon/api"
 )
 
 type Client interface {

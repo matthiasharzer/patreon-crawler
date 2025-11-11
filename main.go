@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"patreon-crawler/crawling"
-	"patreon-crawler/patreon/api"
+	"github.com/MatthiasHarzer/patreon-crawler/crawling"
+	"github.com/MatthiasHarzer/patreon-crawler/patreon/api"
 )
 
 var version = "version unknown"
