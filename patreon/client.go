@@ -12,11 +12,11 @@ type Client interface {
 }
 
 type client struct {
-	apiClient  *api.Client
+	apiClient  api.Client
 	campaignID string
 }
 
-func NewClient(apiClient *api.Client, creatorID string) (Client, error) {
+func NewClient(apiClient api.Client, creatorID string) (Client, error) {
 	campaignID, err := apiClient.GetCampaignID(creatorID)
 	if err != nil {
 		return nil, err

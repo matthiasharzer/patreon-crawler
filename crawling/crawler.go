@@ -83,14 +83,14 @@ type mediaPair struct {
 }
 
 type Crawler struct {
-	apiClient                 *api.Client
+	apiClient                 api.Client
 	downloadInaccessibleMedia bool
 	groupingStrategy          GroupingStrategy
 	downloadLimit             int
 	concurrencyLimit          int
 }
 
-func NewCrawler(apiClient *api.Client, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int, concurrencyLimit int) *Crawler {
+func NewCrawler(apiClient api.Client, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int, concurrencyLimit int) *Crawler {
 	return &Crawler{
 		apiClient:                 apiClient,
 		downloadInaccessibleMedia: downloadInaccessibleMedia,

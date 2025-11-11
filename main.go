@@ -88,8 +88,8 @@ func readCookieFromStdin() (string, error) {
 	return strings.TrimSpace(cookie), nil
 }
 
-func getAPIClientFromStdIn() (*api.Client, string, error) {
-	var apiClient *api.Client
+func getAPIClientFromStdIn() (api.Client, string, error) {
+	var apiClient api.Client
 	var cookie string
 	var err error
 	authenticated := false
@@ -113,7 +113,7 @@ func getAPIClientFromStdIn() (*api.Client, string, error) {
 	return apiClient, cookie, nil
 }
 
-func getAPIClient() (*api.Client, error) {
+func getAPIClient() (api.Client, error) {
 	if argCookie != "" {
 		apiClient := api.NewClient(argCookie)
 		authenticated, err := apiClient.IsAuthenticated()
