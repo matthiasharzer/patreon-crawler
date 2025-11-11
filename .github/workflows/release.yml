@@ -23,7 +23,7 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: "0"
+          fetch-depth: 0
       - name: Get next version
         id: get-next-version
         uses: thenativeweb/get-next-version@2.7.1
@@ -39,8 +39,6 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
       - name: Use Go
         uses: actions/setup-go@v6
         with:
