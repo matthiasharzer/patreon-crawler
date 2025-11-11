@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"patreon-crawler/util/testutils"
+	"github.com/MatthiasHarzer/patreon-crawler/util/testutils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
