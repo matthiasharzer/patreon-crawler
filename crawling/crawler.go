@@ -83,14 +83,14 @@ type mediaPair struct {
 }
 
 type Crawler struct {
-	apiClient                 *api.Client
+	apiClient                 api.Client
 	downloadInaccessibleMedia bool
 	groupingStrategy          GroupingStrategy
 	downloadLimit             int
 	concurrencyLimit          int
 }
 
-func NewCrawler(apiClient *api.Client, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int, concurrencyLimit int) *Crawler {
+func NewCrawler(apiClient api.Client, downloadInaccessibleMedia bool, groupingStrategy GroupingStrategy, downloadLimit int, concurrencyLimit int) *Crawler {
 	return &Crawler{
 		apiClient:                 apiClient,
 		downloadInaccessibleMedia: downloadInaccessibleMedia,
@@ -146,7 +146,7 @@ func (c *Crawler) downloadMedia(media patreon.Media, baseDownloadDir string, par
 	return nil
 }
 
-func (c *Crawler) CrawlPosts(client *patreon.Client, baseDownloadDir string) error {
+func (c *Crawler) CrawlPosts(client patreon.Client, baseDownloadDir string) error {
 	posts := client.Posts()
 	media := c.enumerateMedia(posts)
 

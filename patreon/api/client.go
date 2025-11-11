@@ -10,17 +10,24 @@ import (
 
 const apiURL = "https://www.patreon.com/api"
 
-type Client struct {
+type Client interface {
+	GetCampaignID(creatorID string) (string, error)
+	GetCurrentUser() (UserResponse, error)
+	GetPosts(campaignID string, cursor *string) (PostsResponse, error)
+	IsAuthenticated() (bool, error)
+}
+
+type client struct {
 	cookie string
 }
 
-func NewClient(cookie string) *Client {
-	return &Client{
+func NewClient(cookie string) Client {
+	return &client{
 		cookie: cookie,
 	}
 }
 
-func (c *Client) doAPIRequest(path string, options map[string]string) (*http.Response, error) {
+func (c *client) doAPIRequest(path string, options map[string]string) (*http.Response, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -50,7 +57,7 @@ func (c *Client) doAPIRequest(path string, options map[string]string) (*http.Res
 	return client.Do(request)
 }
 
-func (c *Client) GetCampaignID(creatorID string) (string, error) {
+func (c *client) GetCampaignID(creatorID string) (string, error) {
 	currentUser, err := c.GetCurrentUser()
 	if err != nil {
 		return "", err
@@ -68,7 +75,7 @@ func (c *Client) GetCampaignID(creatorID string) (string, error) {
 	return "", fmt.Errorf("failed to find campaign ID")
 }
 
-func (c *Client) GetCurrentUser() (UserResponse, error) {
+func (c *client) GetCurrentUser() (UserResponse, error) {
 	options := map[string]string{
 		"include":          "active_memberships.campaign",
 		"fields[campaign]": "name,published_at,url,vanity",
@@ -89,7 +96,7 @@ func (c *Client) GetCurrentUser() (UserResponse, error) {
 	return userResponse, nil
 }
 
-func (c *Client) GetPosts(campaignID string, cursor *string) (PostsResponse, error) {
+func (c *client) GetPosts(campaignID string, cursor *string) (PostsResponse, error) {
 	options := map[string]string{
 		"include":                          "attachments,images,media",
 		"fields[post]":                     "teaser_text,current_user_can_view,post_metadata,published_at,post_type,title,url,view_count",
@@ -119,7 +126,7 @@ func (c *Client) GetPosts(campaignID string, cursor *string) (PostsResponse, err
 	return postsResponse, nil
 }
 
-func (c *Client) IsAuthenticated() (bool, error) {
+func (c *client) IsAuthenticated() (bool, error) {
 	response, err := c.doAPIRequest("/current_user", nil)
 	if err != nil {
 		return false, fmt.Errorf("failed to get current user: %w", err)
