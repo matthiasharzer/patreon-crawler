@@ -3,7 +3,6 @@ package download
 import (
 	"fmt"
 	"io"
-	"iter"
 	"net/http"
 	"os"
 	"strings"
@@ -28,7 +27,11 @@ func getFileExtension(mimeType string) (string, error) {
 	return mimeTypeSplits[1], nil
 }
 
-func downloadMedia(media patreon.Media, downloadDir string) ReportItem {
+func Media(media patreon.Media, downloadDir string) ReportItem {
+	if media.MimeType == "" {
+		return NewSkippedItem(media, "no mime type")
+	}
+
 	downloadedFilePath, err := GetMediaFile(downloadDir, media)
 	if err != nil {
 		return NewErrorItem(media, err)
@@ -47,6 +50,11 @@ func downloadMedia(media patreon.Media, downloadDir string) ReportItem {
 
 	if response.StatusCode != http.StatusOK {
 		return NewErrorItem(media, fmt.Errorf("unexpected status code: %s", response.Status))
+	}
+
+	err = os.MkdirAll(downloadDir, os.ModePerm)
+	if err != nil {
+		return NewErrorItem(media, fmt.Errorf("failed to create directory: %w", err))
 	}
 
 	tempDownloadFilePath := downloadedFilePath + ".tmp"
@@ -70,27 +78,4 @@ func downloadMedia(media patreon.Media, downloadDir string) ReportItem {
 	}
 
 	return NewSuccessItem(media)
-}
-
-func Post(downloadDirectory string, post patreon.Post) iter.Seq[ReportItem] {
-	return func(yield func(ReportItem) bool) {
-		if len(post.Media) == 0 {
-			return
-		}
-
-		for _, media := range post.Media {
-			if media.MimeType == "" {
-				item := NewSkippedItem(media, "no mime type")
-				if !yield(item) {
-					return
-				}
-				continue
-			}
-
-			item := downloadMedia(media, downloadDirectory)
-			if !yield(item) {
-				return
-			}
-		}
-	}
 }

@@ -22,6 +22,7 @@ var argDownloadDir string
 var argDownloadLimit int
 var argDownloadInaccessibleMedia bool
 var argGroupingStrategy string
+var argConcurrencyLimit int
 
 func init() {
 	flag.StringVar(&argCreatorID, "creator", "", "The creator ID to crawl")
@@ -30,6 +31,7 @@ func init() {
 	flag.IntVar(&argDownloadLimit, "download-limit", 0, "The maximum number of posts to download")
 	flag.BoolVar(&argDownloadInaccessibleMedia, "download-inaccessible-media", false, "Whether to download inaccessible media")
 	flag.StringVar(&argGroupingStrategy, "grouping", "none", "The grouping strategy to use. Must be one of: none, by-post")
+	flag.IntVar(&argConcurrencyLimit, "concurrency", 3, "The number of concurrent downloads")
 	flag.Parse()
 }
 
@@ -177,6 +179,12 @@ func main() {
 	if argCreatorID == "" {
 		panic("creator ID is required")
 	}
+	if argDownloadLimit < 0 {
+		panic("download limit must be non-negative")
+	}
+	if argConcurrencyLimit <= 0 {
+		panic("concurrency limit must be positive")
+	}
 
 	var groupingStrategy crawling.GroupingStrategy
 	if argGroupingStrategy == "" {
@@ -197,7 +205,9 @@ func main() {
 		panic(err)
 	}
 
-	err = crawling.CrawlCreator(apiClient, argCreatorID, downloadDir, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit)
+	crawler := crawling.NewCrawler(apiClient, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit, argConcurrencyLimit)
+
+	err = crawler.CrawlCreator(argCreatorID, downloadDir)
 	if err != nil {
 		panic(err)
 	}
