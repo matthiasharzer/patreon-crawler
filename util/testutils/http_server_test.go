@@ -65,7 +65,8 @@ func TestCreateHttpServer(t *testing.T) {
 		serverURL, closeServer := testutils.HTTPServer(map[string]http.HandlerFunc{
 			"/": func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("Hello, World!"))
+				_, err := w.Write([]byte("Hello, World!"))
+				require.NoError(t, err)
 			}})
 		defer closeServer()
 
@@ -82,11 +83,13 @@ func TestCreateHttpServer(t *testing.T) {
 		serverURL, closeServer := testutils.HTTPServer(map[string]http.HandlerFunc{
 			"/hello": func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("Hello, World!"))
+				_, err := w.Write([]byte("Hello, World!"))
+				require.NoError(t, err)
 			},
 			"/goodbye": func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("Goodbye, World!"))
+				_, err := w.Write([]byte("Goodbye, World!"))
+				require.NoError(t, err)
 			},
 		})
 		defer closeServer()

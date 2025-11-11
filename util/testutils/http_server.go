@@ -28,7 +28,10 @@ func HTTPServer(routes map[string]http.HandlerFunc) (url.URL, func()) {
 		server.Serve(listener)
 	}()
 
-	parsedURL, _ := url.Parse(fmt.Sprintf("http://%s/", addr))
+	parsedURL, err := url.Parse(fmt.Sprintf("http://%s/", addr))
+	if err != nil {
+		panic(err)
+	}
 
 	return *parsedURL, func() {
 		server.Close()
