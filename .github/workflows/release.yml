@@ -11,16 +11,36 @@ permissions:
 
 
 jobs:
-  release:
-    name: Release
+  get-next-version:
+    name: Get next version
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    outputs:
+      hasNextVersion: ${{ steps.get-next-version.outputs.hasNextVersion }}
+      version: ${{ steps.get-next-version.outputs.version }}
 
     steps:
       - name: Clone repository
         uses: actions/checkout@v5
         with:
           fetch-depth: "0"
+      - name: Get next version
+        id: get-next-version
+        uses: thenativeweb/get-next-version@2.7.1
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: get-next-version
+
+    if: needs.get-next-version.outputs.hasNextVersion == 'true'
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Use Go
         uses: actions/setup-go@v6
         with:
@@ -32,18 +52,15 @@ jobs:
         run:
           make qa
       - name: Create new version
-        if: ${{ steps.get_next_version.outputs.hasNextVersion == 'true' }}
         run: |
-          git tag v${{steps.get_next_version.outputs.version}}
-          git push origin v${{steps.get_next_version.outputs.version}}
+          git tag v${{needs.get-next-version.outputs.version}}
+          git push origin v${{needs.get-next-version.outputs.version}}
       - name: Build artifacts
-        if: ${{ steps.get_next_version.outputs.hasNextVersion == 'true' }}
         run: |
-          make build BUILD_VERSION=${{ steps.get_next_version.outputs.version }}
+          make build BUILD_VERSION=${{ needs.get-next-version.outputs.version }}
       - name: Release new version
-        if: ${{ steps.get_next_version.outputs.hasNextVersion == 'true' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "build/*"
-          tag: v${{ steps.get_next_version.outputs.version }}
+          tag: v${{ needs.get-next-version.outputs.version }}
           generateReleaseNotes: true
