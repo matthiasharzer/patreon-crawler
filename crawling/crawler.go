@@ -146,7 +146,7 @@ func (c *Crawler) downloadMedia(media patreon.Media, baseDownloadDir string, par
 	return nil
 }
 
-func (c *Crawler) CrawlPosts(client *patreon.Client, baseDownloadDir string) error {
+func (c *Crawler) CrawlPosts(client patreon.Client, baseDownloadDir string) error {
 	posts := client.Posts()
 	media := c.enumerateMedia(posts)
 

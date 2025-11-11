@@ -7,23 +7,27 @@ import (
 	"patreon-crawler/patreon/api"
 )
 
-type Client struct {
+type Client interface {
+	Posts() iter.Seq2[Post, error]
+}
+
+type client struct {
 	apiClient  *api.Client
 	campaignID string
 }
 
-func NewClient(apiClient *api.Client, creatorID string) (*Client, error) {
+func NewClient(apiClient *api.Client, creatorID string) (Client, error) {
 	campaignID, err := apiClient.GetCampaignID(creatorID)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{
+	return &client{
 		apiClient:  apiClient,
 		campaignID: campaignID,
 	}, nil
 }
 
-func (c *Client) getPosts(cursor string) ([]Post, string, error) {
+func (c *client) getPosts(cursor string) ([]Post, string, error) {
 	postsResponse, err := c.apiClient.GetPosts(c.campaignID, &cursor)
 	if err != nil {
 		return nil, "", err
@@ -84,7 +88,7 @@ func (c *Client) getPosts(cursor string) ([]Post, string, error) {
 	return posts, nextCursor, nil
 }
 
-func (c *Client) Posts() iter.Seq2[Post, error] {
+func (c *client) Posts() iter.Seq2[Post, error] {
 	return func(yield func(Post, error) bool) {
 		var cursor string
 		for {
