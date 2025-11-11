@@ -43,9 +43,6 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: ./go.mod
-      - name: Get next version
-        id: get_next_version
-        uses: thenativeweb/get-next-version@2.7.1
       - name: Run QA
         run:
           make qa
