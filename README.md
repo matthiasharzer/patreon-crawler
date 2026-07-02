@@ -25,11 +25,12 @@ The simplest way to extract the cookies is by visiting the Patreon home page and
 
 ### Using the tool
 
-To download all media from a creator, run the following command.
+To download all media from one or multiple creators, run the following command.
 
 ```shell
-patreon-crawler crawl <creator-id>
+patreon-crawler crawl <creator-id> [<creator-id-2> <creator-id-3> ...]
 ```
+ > You can find the creator ID in the URL when visiting a creator's page: `patreon.com/c/<creator-id>/...`
 
 You will be prompted to enter the cookie (the one you copied earlier) and a download directory. 
 
@@ -43,7 +44,6 @@ The `patreon-crawler crawl` command supports the following command line flags.
 
 | Argument                        | Description                                                                                                                                                                           |
 |---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--creator <creator-id>`        | The creator ID to download media from. You can find this in the URL when visiting a creators page: `patreon.com/c/<creator-id>/...`                                                   |
 | `--cookie <cookie-string>`      | The cookie from the Patreon website to authenticate against the Patreon API                                                                                                           |
 | `--download-dir <directory>`    | The base directory to download media to. All files will be located in `<download-dir>/<creator>`                                                                                      |
 | `--download-limit <number>`     | The maximum number of posts to download.                                                                                                                                              |

@@ -9,21 +9,24 @@ import (
 
 type Client interface {
 	Posts() iter.Seq2[Post, error]
+	VanityID() string
 }
 
 type client struct {
-	apiClient  api.Client
-	campaignID string
+	apiClient        api.Client
+	campaignID       string
+	campaignVanityID string
 }
 
 func NewClient(apiClient api.Client, creatorID string) (Client, error) {
-	campaignID, err := apiClient.GetCampaignID(creatorID)
+	campaign, err := apiClient.GetCampaign(creatorID)
 	if err != nil {
 		return nil, err
 	}
 	return &client{
-		apiClient:  apiClient,
-		campaignID: campaignID,
+		apiClient:        apiClient,
+		campaignID:       campaign.ID,
+		campaignVanityID: campaign.Attributes.Vanity,
 	}, nil
 }
 
@@ -86,6 +89,10 @@ func (c *client) getPosts(cursor string) ([]Post, string, error) {
 	nextCursor := postsResponse.Meta.Pagination.Cursors.Next
 
 	return posts, nextCursor, nil
+}
+
+func (c *client) VanityID() string {
+	return c.campaignVanityID
 }
 
 func (c *client) Posts() iter.Seq2[Post, error] {

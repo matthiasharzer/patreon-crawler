@@ -11,7 +11,7 @@ import (
 const apiURL = "https://www.patreon.com/api"
 
 type Client interface {
-	GetCampaignID(creatorID string) (string, error)
+	GetCampaign(creatorID string) (ResponseCampaign, error)
 	GetCurrentUser() (UserResponse, error)
 	GetPosts(campaignID string, cursor *string) (PostsResponse, error)
 	IsAuthenticated() (bool, error)
@@ -57,22 +57,22 @@ func (c *client) doAPIRequest(path string, options map[string]string) (*http.Res
 	return client.Do(request)
 }
 
-func (c *client) GetCampaignID(creatorID string) (string, error) {
+func (c *client) GetCampaign(creatorID string) (ResponseCampaign, error) {
 	currentUser, err := c.GetCurrentUser()
 	if err != nil {
-		return "", err
+		return ResponseCampaign{}, err
 	}
 
 	for _, include := range currentUser.Included {
 		switch include := include.(type) {
 		case ResponseCampaign:
 			if strings.EqualFold(include.Attributes.Vanity, creatorID) {
-				return include.ID, nil
+				return include, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("failed to find campaign ID")
+	return ResponseCampaign{}, fmt.Errorf("failed to find campaign for creator ID %s", creatorID)
 }
 
 func (c *client) GetCurrentUser() (UserResponse, error) {

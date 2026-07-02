@@ -19,13 +19,13 @@ func TestQueue(t *testing.T) {
 		processed := make([]int, 0, len(items))
 		var mu sync.Mutex
 
-		q1, err := queue.New[int](1)
+		q1, err := queue.New(1)
 		require.NoError(t, err)
 		for _, it := range items {
 			it := it
-			q1.Enqueue(it, func(v int) error {
+			q1.Enqueue(func() error {
 				mu.Lock()
-				processed = append(processed, v)
+				processed = append(processed, it)
 				mu.Unlock()
 				return nil
 			})
@@ -44,13 +44,13 @@ func TestQueue(t *testing.T) {
 		counts := make(map[int]int, n)
 		var mu2 sync.Mutex
 
-		q2, err := queue.New[int](conc)
+		q2, err := queue.New(conc)
 		require.NoError(t, err)
 		for i := 0; i < n; i++ {
 			i := i
-			q2.Enqueue(i, func(v int) error {
+			q2.Enqueue(func() error {
 				mu2.Lock()
-				counts[v]++
+				counts[i]++
 				mu2.Unlock()
 				return nil
 			})
@@ -70,13 +70,13 @@ func TestQueue(t *testing.T) {
 		var processedCount int32
 		failOn := 30
 
-		q3, err := queue.New[int](1)
+		q3, err := queue.New(1)
 		require.NoError(t, err)
 		for _, it := range errorItems {
 			it := it
-			q3.Enqueue(it, func(v int) error {
+			q3.Enqueue(func() error {
 				atomic.AddInt32(&processedCount, 1)
-				if v == failOn {
+				if it == failOn {
 					return errors.New("boom")
 				}
 				return nil
@@ -96,10 +96,10 @@ func TestQueue(t *testing.T) {
 		var maxActive int32
 		var mu3 sync.Mutex
 
-		q4, err := queue.New[int](concLimit)
+		q4, err := queue.New(concLimit)
 		require.NoError(t, err)
 		for i := 0; i < nParallel; i++ {
-			q4.Enqueue(i, func(v int) error {
+			q4.Enqueue(func() error {
 				cur := atomic.AddInt32(&active, 1)
 				mu3.Lock()
 				if cur > maxActive {
@@ -119,7 +119,7 @@ func TestQueue(t *testing.T) {
 	})
 
 	t.Run("empty queue returns nil error", func(t *testing.T) {
-		q5, err := queue.New[int](3)
+		q5, err := queue.New(3)
 		require.NoError(t, err)
 		err = q5.ProcessAll()
 		assert.NoError(t, err)
@@ -131,16 +131,16 @@ func TestQueue(t *testing.T) {
 		conc := 6
 		counts := make(map[int]int, itemCount)
 		var mu sync.Mutex
-		q, err := queue.New[int](conc)
+		q, err := queue.New(conc)
 		require.NoError(t, err)
 
 		for i := 0; i < itemCount; i++ {
 			i := i
-			q.Enqueue(i, func(v int) error {
+			q.Enqueue(func() error {
 				mu.Lock()
-				counts[v]++
+				counts[i]++
 				mu.Unlock()
-				if v == failOn {
+				if i == failOn {
 					return errors.New("boom")
 				}
 				time.Sleep(2 * time.Millisecond)
@@ -166,7 +166,7 @@ func TestQueue(t *testing.T) {
 	})
 
 	t.Run("invalid concurrency returns error", func(t *testing.T) {
-		q, err := queue.New[int](0)
+		q, err := queue.New(0)
 		require.Error(t, err)
 		assert.Nil(t, q)
 	})

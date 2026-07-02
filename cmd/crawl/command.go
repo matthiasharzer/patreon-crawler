@@ -12,6 +12,7 @@ import (
 
 	"github.com/MatthiasHarzer/patreon-crawler/crawling"
 	"github.com/MatthiasHarzer/patreon-crawler/patreon/api"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -163,9 +164,9 @@ func getDownloadDir(defaultDownloadDir string) (string, error) {
 }
 
 var Command = &cobra.Command{
-	Use:   "crawl <creator-id>",
+	Use:   "crawl <creator-id> [<creator-id-2> <creator-id-3> ...]",
 	Short: "Crawl a patreon creator and download their posts",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MinimumNArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if argDownloadLimit < 0 {
 			return fmt.Errorf("download limit must be non-negative")
@@ -196,12 +197,21 @@ var Command = &cobra.Command{
 			return fmt.Errorf("failed to get API client: %w", err)
 		}
 
-		crawler := crawling.NewCrawler(apiClient, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit, argConcurrencyLimit)
-
-		creatorID := args[0]
-		err = crawler.CrawlCreator(creatorID, downloadDir)
+		downloader, err := crawling.NewDownloader(downloadDir, argConcurrencyLimit, groupingStrategy)
 		if err != nil {
-			return fmt.Errorf("failed to crawl creator %s: %w", creatorID, err)
+			return fmt.Errorf("failed to create downloader: %w", err)
+		}
+
+		for index, creatorID := range args {
+			if index > 0 {
+				fmt.Println()
+			}
+
+			fmt.Printf("Crawling creator %s:\n", color.GreenString(creatorID))
+			err = crawlCreator(creatorID, apiClient, downloader, argDownloadLimit, argDownloadInaccessibleMedia)
+			if err != nil {
+				return fmt.Errorf("failed to crawl creator %s: %w", creatorID, err)
+			}
 		}
 
 		return nil
