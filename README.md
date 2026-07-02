@@ -7,7 +7,7 @@ A simple tool to download all media from a patreon creator
 ## Setup
 Download the [latest release](https://github.com/MatthiasHarzer/patreon-crawler/releases) and add the executable to your `PATH`.
 
-> Don't forget to make the file executable using `chmod +x patreon-crawler` when using a UNIX-based operating system
+> Don't forget to make the file executable using `chmod u+x patreon-crawler` when using a UNIX-based operating system
 
 ## Usage
 
@@ -28,7 +28,7 @@ The simplest way to extract the cookies is by visiting the Patreon home page and
 To download all media from a creator, run the following command.
 
 ```shell
-patreon-crawler --creator <creator-id>
+patreon-crawler crawl <creator-id>
 ```
 
 You will be prompted to enter the cookie (the one you copied earlier) and a download directory. 
@@ -39,7 +39,7 @@ Note: The cookie will be cached after authenticating against patreon.com once an
 
 ### Command line flags
 
-The `patreon-crawler` supports the following command line flags.
+The `patreon-crawler crawl` command supports the following command line flags.
 
 | Argument                        | Description                                                                                                                                                                           |
 |---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -49,5 +49,4 @@ The `patreon-crawler` supports the following command line flags.
 | `--download-limit <number>`     | The maximum number of posts to download.                                                                                                                                              |
 | `--download-inaccessible-media` | Whether to download media that is inaccessible (blurred images)                                                                                                                       |
 | `--grouping <none \| by-post>`  | The strategy for grouping post media into folders. <br>`none` - Puts all media into the same folder (per creator)<br>`by-post` - Creates a folder for each post, containing its media |
-| `--concurrency <number>`        | The number of concurrent downloads to perform (default `3`)                                                                                                                           |
-
+| `--concurrency <number>`        | The number of concurrent downloads to perform (default `4`)                                                                                                                           |
