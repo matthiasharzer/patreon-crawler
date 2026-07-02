@@ -196,12 +196,16 @@ var Command = &cobra.Command{
 			return fmt.Errorf("failed to get API client: %w", err)
 		}
 
-		crawler := crawling.NewCrawler(apiClient, argDownloadInaccessibleMedia, groupingStrategy, argDownloadLimit, argConcurrencyLimit)
-
 		creatorID := args[0]
-		err = crawler.CrawlCreator(creatorID, downloadDir)
+
+		downloader, err := crawling.NewDownloader(downloadDir, argConcurrencyLimit, groupingStrategy)
 		if err != nil {
-			return fmt.Errorf("failed to crawl creator %s: %w", creatorID, err)
+			return fmt.Errorf("failed to create downloader: %w", err)
+		}
+
+		err = crawlCreator(creatorID, apiClient, downloader, argDownloadLimit, argDownloadInaccessibleMedia)
+		if err != nil {
+			return fmt.Errorf("failed to crawl: %w", err)
 		}
 
 		return nil

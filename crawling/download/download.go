@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/MatthiasHarzer/patreon-crawler/patreon"
 )
@@ -27,7 +28,22 @@ func getFileExtension(mimeType string) (string, error) {
 	return mimeTypeSplits[1], nil
 }
 
-func Media(media patreon.Media, downloadDir string) ReportItem {
+func adjustFileTime(filePath string, publishedAt time.Time) error {
+	_, err := os.Stat(filePath)
+	if err != nil {
+		// File does not exist
+		return nil
+	}
+
+	err = os.Chtimes(filePath, publishedAt, publishedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Media(media patreon.Media, downloadDir string, modTime time.Time) ReportItem {
 	if media.MimeType == "" {
 		return NewSkippedItem(media, "no mime type")
 	}
@@ -75,6 +91,11 @@ func Media(media patreon.Media, downloadDir string) ReportItem {
 	err = os.Rename(tempDownloadFilePath, downloadedFilePath)
 	if err != nil {
 		return NewErrorItem(media, fmt.Errorf("failed to rename file: %w", err))
+	}
+
+	err = adjustFileTime(downloadedFilePath, modTime)
+	if err != nil {
+		return NewErrorItem(media, fmt.Errorf("failed to adjust file time: %w", err))
 	}
 
 	return NewSuccessItem(media)
