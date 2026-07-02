@@ -163,7 +163,7 @@ func getDownloadDir(defaultDownloadDir string) (string, error) {
 }
 
 var Command = &cobra.Command{
-	Use:   "crawl [creatorID]",
+	Use:   "crawl <creator-id>",
 	Short: "Crawl a patreon creator and download their posts",
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
