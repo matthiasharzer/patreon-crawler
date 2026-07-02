@@ -5,48 +5,45 @@ import (
 	"sync"
 )
 
-type Item[T any] struct {
-	value   T
-	process func(item T) error
-}
+type Task = func() error
 
-type Queue[T any] struct {
-	items            []Item[T]
+type Queue struct {
+	tasks            []Task
 	concurrencyLimit int
 	mutex            sync.Mutex
 	err              error
 	errMutex         sync.RWMutex
 }
 
-func New[T any](concurrencyLimit int) (*Queue[T], error) {
+func New(concurrencyLimit int) (*Queue, error) {
 	if concurrencyLimit < 1 {
 		return nil, errors.New("concurrency limit must be greater than zero")
 	}
-	return &Queue[T]{
-		items:            make([]Item[T], 0),
+	return &Queue{
+		tasks:            make([]Task, 0),
 		concurrencyLimit: concurrencyLimit,
 	}, nil
 }
 
-func (q *Queue[T]) next() (Item[T], bool) {
-	var zero Item[T]
+func (q *Queue) next() (Task, bool) {
+	var zero Task
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-	if len(q.items) == 0 {
+	if len(q.tasks) == 0 {
 		return zero, false
 	}
-	item := q.items[0]
-	q.items = q.items[1:]
-	return item, true
+	task := q.tasks[0]
+	q.tasks = q.tasks[1:]
+	return task, true
 }
 
-func (q *Queue[T]) hasError() bool {
+func (q *Queue) hasError() bool {
 	q.errMutex.RLock()
 	defer q.errMutex.RUnlock()
 	return q.err != nil
 }
 
-func (q *Queue[T]) worker(wg *sync.WaitGroup) {
+func (q *Queue) worker(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for {
@@ -54,11 +51,11 @@ func (q *Queue[T]) worker(wg *sync.WaitGroup) {
 			return
 		}
 
-		item, ok := q.next()
+		task, ok := q.next()
 		if !ok {
 			return
 		}
-		err := item.process(item.value)
+		err := task()
 		if err != nil {
 			q.errMutex.Lock()
 			q.err = err
@@ -68,13 +65,13 @@ func (q *Queue[T]) worker(wg *sync.WaitGroup) {
 	}
 }
 
-func (q *Queue[T]) Enqueue(item T, process func(item T) error) {
+func (q *Queue) Enqueue(task Task) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-	q.items = append(q.items, Item[T]{value: item, process: process})
+	q.tasks = append(q.tasks, task)
 }
 
-func (q *Queue[T]) ProcessAll() error {
+func (q *Queue) ProcessAll() error {
 	var wg sync.WaitGroup
 	wg.Add(q.concurrencyLimit)
 
