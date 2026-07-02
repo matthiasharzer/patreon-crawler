@@ -18,7 +18,8 @@ func SanitizeFilename(name string) string {
 	name = fileNameInvalidChars.ReplaceAllString(name, "_")
 	name = strings.TrimRight(name, " .")
 	upper := strings.ToUpper(name)
-	if slices.Contains(fileNameWindowsReservedNames, upper) {
+	base := strings.SplitN(upper, ".", 2)[0]
+	if slices.Contains(fileNameWindowsReservedNames, base) {
 		name = "_" + name
 	}
 	if len(name) > 255 {

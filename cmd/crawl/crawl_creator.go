@@ -80,6 +80,7 @@ func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.D
 
 	printMutex := sync.Mutex{}
 	for _, pair := range mediaPairs {
+		pair := pair
 		downloader.Enqueue(vanityID, pair.post, pair.media, func(reportItem download.ReportItem) {
 			printMutex.Lock()
 			defer printMutex.Unlock()

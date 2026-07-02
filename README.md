@@ -25,10 +25,10 @@ The simplest way to extract the cookies is by visiting the Patreon home page and
 
 ### Using the tool
 
-To download all media from a creator, run the following command.
+To download all media from one or multiple creators, run the following command.
 
 ```shell
-patreon-crawler crawl <creator-id>
+patreon-crawler crawl <creator-id> [<creator-id-2> <creator-id-3> ...]
 ```
  > You can find the creator ID in the URL when visiting a creator's page: `patreon.com/c/<creator-id>/...`
 
