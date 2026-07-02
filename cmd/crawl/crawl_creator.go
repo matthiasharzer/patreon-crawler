@@ -1,7 +1,10 @@
 package crawl
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
 
 	"github.com/MatthiasHarzer/patreon-crawler/crawling"
@@ -16,6 +19,50 @@ type mediaPair struct {
 	media patreon.Media
 }
 
+func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, downloadLimit int) ([]mediaPair, error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	var mediaPairs []mediaPair
+	totalPostsDiscovered := 0
+	inaccessiblePostsSkipped := 0
+	for post, err := range client.Posts() {
+		select {
+		case <-ctx.Done():
+			fmt.Println()
+			return nil, fmt.Errorf("crawling interrupted")
+		default:
+			if err != nil {
+				return nil, err
+			}
+			fmt.Printf("\rDiscovered %s posts with %s media files.", color.GreenString("%d", totalPostsDiscovered), color.GreenString("%d", len(mediaPairs)))
+			totalPostsDiscovered++
+
+			if !post.CurrentUserCanView && !downloadInaccessibleMedia {
+				inaccessiblePostsSkipped++
+				continue
+			}
+
+			for _, media := range post.Media {
+				mediaPairs = append(mediaPairs, mediaPair{post: post, media: media})
+			}
+
+			if downloadLimit > 0 && len(mediaPairs) >= downloadLimit {
+				if len(mediaPairs) > downloadLimit {
+					mediaPairs = mediaPairs[:downloadLimit]
+				}
+				break
+			}
+		}
+	}
+
+	fmt.Printf("\rDiscovered %s posts with %s media files.\n", color.GreenString("%d", totalPostsDiscovered), color.GreenString("%d", len(mediaPairs)))
+	if inaccessiblePostsSkipped > 0 {
+		fmt.Printf("Skipped %s inaccessible posts.\n", color.YellowString("%d", inaccessiblePostsSkipped))
+	}
+	return mediaPairs, nil
+}
+
 func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.Downloader, downloadLimit int, downloadInaccessibleMedia bool) error {
 	client, err := patreon.NewClient(apiClient, creatorID)
 	if err != nil {
@@ -24,36 +71,9 @@ func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.D
 
 	vanityID := client.VanityID()
 
-	var mediaPairs []mediaPair
-	totalPostsDiscovered := 0
-	inaccessiblePostsSkipped := 0
-	for post, err := range client.Posts() {
-		if err != nil {
-			return err
-		}
-		fmt.Printf("\rDiscovered %s posts with %s media files.", color.GreenString("%d", totalPostsDiscovered), color.GreenString("%d", len(mediaPairs)))
-		totalPostsDiscovered++
-
-		if !post.CurrentUserCanView && !downloadInaccessibleMedia {
-			inaccessiblePostsSkipped++
-			continue
-		}
-
-		for _, media := range post.Media {
-			mediaPairs = append(mediaPairs, mediaPair{post: post, media: media})
-		}
-
-		if downloadLimit > 0 && len(mediaPairs) >= downloadLimit {
-			if len(mediaPairs) > downloadLimit {
-				mediaPairs = mediaPairs[:downloadLimit]
-			}
-			break
-		}
-	}
-
-	fmt.Printf("\rDiscovered %s posts with %s media files.\n", color.GreenString("%d", totalPostsDiscovered), color.GreenString("%d", len(mediaPairs)))
-	if inaccessiblePostsSkipped > 0 {
-		fmt.Printf("Skipped %s inaccessible posts.\n", color.YellowString("%d", inaccessiblePostsSkipped))
+	mediaPairs, err := crawlMediaPairs(client, downloadInaccessibleMedia, downloadLimit)
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("Downloading media...")
