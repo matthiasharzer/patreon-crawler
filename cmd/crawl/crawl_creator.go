@@ -87,7 +87,7 @@ func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.D
 			case *download.ReportErrorItem:
 				fmt.Printf("[%s] %s from post \"%s\": %s\n", color.RedString("error"), item.Media.ID, color.RedString(pair.post.Title), item.Err)
 			case *download.ReportSkippedItem:
-				fmt.Printf("[%s] %s from post \"%s\" (%s)\n", color.YellowString("skipped"), item.Media.ID, color.YellowString(pair.post.Title), color.RGB(100, 100, 100).Sprintf(item.Reason))
+				fmt.Printf("[%s] %s from post \"%s\" (%s)\n", color.YellowString("skipped"), item.Media.ID, color.YellowString(pair.post.Title), color.RGB(100, 100, 100).Sprint(item.Reason))
 			case *download.ReportSuccessItem:
 				fmt.Printf("[%s] %s from post \"%s\"\n", color.GreenString("downloaded"), item.Media.ID, color.GreenString(pair.post.Title))
 			}

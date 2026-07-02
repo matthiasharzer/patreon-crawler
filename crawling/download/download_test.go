@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/MatthiasHarzer/patreon-crawler/crawling/download"
 	"github.com/MatthiasHarzer/patreon-crawler/patreon"
@@ -49,7 +50,7 @@ func TestDownload(t *testing.T) {
 		defer dirCleanup()
 
 		for _, media := range medias {
-			reportItem := download.Media(media, downloadDir)
+			reportItem := download.Media(media, downloadDir, time.Time{})
 			require.IsType(t, &download.ReportSuccessItem{}, reportItem)
 
 			successItem := reportItem.(*download.ReportSuccessItem)
@@ -91,7 +92,7 @@ func TestDownload(t *testing.T) {
 		err = os.WriteFile(downloadedFilePath, []byte("existing content"), 0644)
 		require.NoError(t, err)
 
-		reportItem := download.Media(media, downloadDir)
+		reportItem := download.Media(media, downloadDir, time.Time{})
 		require.IsType(t, &download.ReportSkippedItem{}, reportItem)
 
 		skippedItem := reportItem.(*download.ReportSkippedItem)
@@ -110,7 +111,7 @@ func TestDownload(t *testing.T) {
 		require.NoError(t, err)
 		defer dirCleanup()
 
-		reportItem := download.Media(media, downloadDir)
+		reportItem := download.Media(media, downloadDir, time.Time{})
 		require.IsType(t, &download.ReportSkippedItem{}, reportItem)
 
 		skippedItem := reportItem.(*download.ReportSkippedItem)
@@ -129,7 +130,7 @@ func TestDownload(t *testing.T) {
 		require.NoError(t, err)
 		defer dirCleanup()
 
-		reportItem := download.Media(media, downloadDir)
+		reportItem := download.Media(media, downloadDir, time.Time{})
 		require.IsType(t, &download.ReportErrorItem{}, reportItem)
 
 		errorItem := reportItem.(*download.ReportErrorItem)
@@ -148,7 +149,7 @@ func TestDownload(t *testing.T) {
 		require.NoError(t, err)
 		defer dirCleanup()
 
-		reportItem := download.Media(media, downloadDir)
+		reportItem := download.Media(media, downloadDir, time.Time{})
 		require.IsType(t, &download.ReportErrorItem{}, reportItem)
 
 		errorItem := reportItem.(*download.ReportErrorItem)
