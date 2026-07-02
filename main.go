@@ -11,7 +11,8 @@ import (
 )
 
 var rootCommand = &cobra.Command{
-	Use: "patreon-crawler",
+	Use:           "patreon-crawler",
+	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		return cmd.Help()
 	},

@@ -158,7 +158,7 @@ func getDownloadDir(defaultDownloadDir string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read download directory: %w", err)
 	}
-	downloadDir = downloadDir[:len(downloadDir)-1]
+	downloadDir = strings.TrimSpace(downloadDir)
 	return downloadDir, nil
 }
 
@@ -167,8 +167,8 @@ var Command = &cobra.Command{
 	Short: "Crawl a patreon creator and download their posts",
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if argDownloadLimit <= 0 {
-			return fmt.Errorf("download limit must be positive")
+		if argDownloadLimit < 0 {
+			return fmt.Errorf("download limit must be non-negative")
 		}
 		if argConcurrencyLimit <= 0 {
 			return fmt.Errorf("concurrency limit must be positive")
@@ -201,7 +201,7 @@ var Command = &cobra.Command{
 		creatorID := args[0]
 		err = crawler.CrawlCreator(creatorID, downloadDir)
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("failed to crawl creator %s: %w", creatorID, err)
 		}
 
 		return nil
