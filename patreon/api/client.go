@@ -98,7 +98,7 @@ func (c *client) GetCurrentUser() (UserResponse, error) {
 
 func (c *client) GetPosts(campaignID string, cursor *string) (PostsResponse, error) {
 	options := map[string]string{
-		"include":                          "attachments,images,media",
+		"include":                          "attachments,attachments_media,images,media",
 		"fields[post]":                     "teaser_text,current_user_can_view,post_metadata,published_at,post_type,title,url,view_count",
 		"fields[media]":                    "id,image_urls,download_url,metadata,mimetype,name,size_bytes",
 		"filter[contains_exclusive_posts]": "true",

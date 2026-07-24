@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"slices"
 	"sync"
 
 	"github.com/MatthiasHarzer/patreon-crawler/crawling"
@@ -19,13 +20,25 @@ type mediaPair struct {
 	media patreon.Media
 }
 
-func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, downloadLimit int) ([]mediaPair, error) {
+func selectMedia(post patreon.Post, mediaSelection string) []patreon.Media {
+	switch mediaSelection {
+	case mediaSelectionAttachments:
+		return post.Attachments
+	case mediaSelectionAll:
+		return slices.Concat(post.Media, post.Attachments)
+	default:
+		return post.Media
+	}
+}
+
+func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, downloadLimit int, mediaSelection string) ([]mediaPair, error) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	var mediaPairs []mediaPair
 	totalPostsDiscovered := 0
 	inaccessiblePostsSkipped := 0
+discovery:
 	for post, err := range client.Posts() {
 		select {
 		case <-ctx.Done():
@@ -43,7 +56,7 @@ func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, down
 				continue
 			}
 
-			for _, media := range post.Media {
+			for _, media := range selectMedia(post, mediaSelection) {
 				mediaPairs = append(mediaPairs, mediaPair{post: post, media: media})
 			}
 
@@ -51,7 +64,7 @@ func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, down
 				if len(mediaPairs) > downloadLimit {
 					mediaPairs = mediaPairs[:downloadLimit]
 				}
-				break
+				break discovery
 			}
 		}
 	}
@@ -63,7 +76,7 @@ func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, down
 	return mediaPairs, nil
 }
 
-func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.Downloader, downloadLimit int, downloadInaccessibleMedia bool) error {
+func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.Downloader, downloadLimit int, downloadInaccessibleMedia bool, mediaSelection string) error {
 	client, err := patreon.NewClient(apiClient, creatorID)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
@@ -71,7 +84,7 @@ func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.D
 
 	vanityID := client.VanityID()
 
-	mediaPairs, err := crawlMediaPairs(client, downloadInaccessibleMedia, downloadLimit)
+	mediaPairs, err := crawlMediaPairs(client, downloadInaccessibleMedia, downloadLimit, mediaSelection)
 	if err != nil {
 		return err
 	}
