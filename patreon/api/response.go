@@ -137,13 +137,18 @@ type ResponsePostMetaData struct {
 }
 
 type ResponsePostRelationships struct {
-	Attachments ResponsePostRelationshipsAttachments `json:"attachments"`
-	Images      ResponsePostRelationshipsImages      `json:"images"`
-	Media       ResponsePostRelationshipsMedia       `json:"media"`
+	Attachments      ResponsePostRelationshipsAttachments      `json:"attachments"`
+	AttachmentsMedia ResponsePostRelationshipsAttachmentsMedia `json:"attachments_media"`
+	Images           ResponsePostRelationshipsImages           `json:"images"`
+	Media            ResponsePostRelationshipsMedia            `json:"media"`
 }
 
 type ResponsePostRelationshipsAttachments struct {
 	Data []any `json:"data"`
+}
+
+type ResponsePostRelationshipsAttachmentsMedia struct {
+	Data []ResponseReference `json:"data"`
 }
 
 type ResponsePostRelationshipsImages struct {

@@ -48,6 +48,10 @@ func Media(media patreon.Media, downloadDir string, modTime time.Time) ReportIte
 		return NewSkippedItem(media, "no mime type")
 	}
 
+	if media.DownloadURL == "" {
+		return NewSkippedItem(media, "no download url (no access)")
+	}
+
 	downloadedFilePath, err := GetMediaFile(downloadDir, media)
 	if err != nil {
 		return NewErrorItem(media, err)

@@ -72,6 +72,16 @@ func (c *client) getPosts(cursor string) ([]Post, string, error) {
 			media = append(media, m)
 		}
 
+		var attachments []Media
+		for _, ref := range responsePost.RelationShips.AttachmentsMedia.Data {
+			m, ok := medias[ref.ID]
+			if !ok {
+				continue
+			}
+
+			attachments = append(attachments, m)
+		}
+
 		publishedAt, err := time.Parse(time.RFC3339, responsePost.Attributes.PublishedAt)
 		if err != nil {
 			return nil, "", err
@@ -81,6 +91,7 @@ func (c *client) getPosts(cursor string) ([]Post, string, error) {
 			ID:                 responsePost.ID,
 			Title:              responsePost.Attributes.Title,
 			Media:              media,
+			Attachments:        attachments,
 			PublishedAt:        publishedAt,
 			CurrentUserCanView: responsePost.Attributes.CurrentUserCanView,
 		})
