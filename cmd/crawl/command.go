@@ -22,7 +22,7 @@ var argDownloadLimit = math.MaxInt
 var argDownloadInaccessibleMedia bool
 var argGroupingStrategy string
 var argConcurrencyLimit = 4
-var argMediaSelection = "images"
+var argMediaSelection = string(crawling.MediaSelectionImages)
 
 func init() {
 	Command.Flags().StringVarP(&argCookie, "cookie", "c", argCookie, "The cookie to use for authentication")
@@ -34,15 +34,9 @@ func init() {
 	Command.Flags().StringVarP(&argMediaSelection, "media", "m", argMediaSelection, "Which media to download. Must be one of: images, attachments, all")
 }
 
-const (
-	mediaSelectionImages      = "images"
-	mediaSelectionAttachments = "attachments"
-	mediaSelectionAll         = "all"
-)
-
-func isValidMediaSelection(selection string) bool {
+func isValidMediaSelection(selection crawling.MediaSelection) bool {
 	switch selection {
-	case mediaSelectionImages, mediaSelectionAttachments, mediaSelectionAll:
+	case crawling.MediaSelectionImages, crawling.MediaSelectionAttachments, crawling.MediaSelectionAll:
 		return true
 	default:
 		return false
@@ -194,7 +188,7 @@ var Command = &cobra.Command{
 		if argGroupingStrategy != "" && !isValidGroupingStrategy(crawling.GroupingStrategy(argGroupingStrategy)) {
 			return fmt.Errorf("invalid grouping strategy. Must be one of: none, by-post")
 		}
-		if !isValidMediaSelection(argMediaSelection) {
+		if !isValidMediaSelection(crawling.MediaSelection(argMediaSelection)) {
 			return fmt.Errorf("invalid media selection. Must be one of: images, attachments, all")
 		}
 		return nil
@@ -228,7 +222,7 @@ var Command = &cobra.Command{
 			}
 
 			fmt.Printf("Crawling creator %s:\n", color.GreenString(creatorID))
-			err = crawlCreator(creatorID, apiClient, downloader, argDownloadLimit, argDownloadInaccessibleMedia, argMediaSelection)
+			err = crawlCreator(creatorID, apiClient, downloader, argDownloadLimit, argDownloadInaccessibleMedia, crawling.MediaSelection(argMediaSelection))
 			if err != nil {
 				return fmt.Errorf("failed to crawl creator %s: %w", creatorID, err)
 			}

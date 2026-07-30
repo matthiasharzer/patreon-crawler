@@ -20,52 +20,65 @@ type mediaPair struct {
 	media patreon.Media
 }
 
-func selectMedia(post patreon.Post, mediaSelection string) []patreon.Media {
+func selectMedia(post patreon.Post, mediaSelection crawling.MediaSelection) []patreon.Media {
 	switch mediaSelection {
-	case mediaSelectionAttachments:
+	case crawling.MediaSelectionAttachments:
 		return post.Attachments
-	case mediaSelectionAll:
-		return slices.Concat(post.Media, post.Attachments)
+	case crawling.MediaSelectionAll:
+		return dedupeMediaByID(slices.Concat(post.Media, post.Attachments))
 	default:
 		return post.Media
 	}
 }
 
-func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, downloadLimit int, mediaSelection string) ([]mediaPair, error) {
+// dedupeMediaByID removes media sharing an ID, keeping the first occurrence. A
+// post can reference the same media in both its Media and Attachments, which
+// would otherwise cause it to be downloaded twice under "all".
+func dedupeMediaByID(media []patreon.Media) []patreon.Media {
+	seen := make(map[string]struct{}, len(media))
+	result := make([]patreon.Media, 0, len(media))
+	for _, m := range media {
+		if _, ok := seen[m.ID]; ok {
+			continue
+		}
+		seen[m.ID] = struct{}{}
+		result = append(result, m)
+	}
+	return result
+}
+
+func crawlMediaPairs(client patreon.Client, downloadInaccessibleMedia bool, downloadLimit int, mediaSelection crawling.MediaSelection) ([]mediaPair, error) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
 	var mediaPairs []mediaPair
 	totalPostsDiscovered := 0
 	inaccessiblePostsSkipped := 0
-discovery:
 	for post, err := range client.Posts() {
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			fmt.Println()
 			return nil, fmt.Errorf("crawling interrupted")
-		default:
-			if err != nil {
-				return nil, err
-			}
-			fmt.Printf("\rDiscovered %s posts with %s media files.", color.GreenString("%d", totalPostsDiscovered), color.GreenString("%d", len(mediaPairs)))
-			totalPostsDiscovered++
+		}
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf("\rDiscovered %s posts with %s media files.", color.GreenString("%d", totalPostsDiscovered), color.GreenString("%d", len(mediaPairs)))
+		totalPostsDiscovered++
 
-			if !post.CurrentUserCanView && !downloadInaccessibleMedia {
-				inaccessiblePostsSkipped++
-				continue
-			}
+		if !post.CurrentUserCanView && !downloadInaccessibleMedia {
+			inaccessiblePostsSkipped++
+			continue
+		}
 
-			for _, media := range selectMedia(post, mediaSelection) {
-				mediaPairs = append(mediaPairs, mediaPair{post: post, media: media})
-			}
+		for _, media := range selectMedia(post, mediaSelection) {
+			mediaPairs = append(mediaPairs, mediaPair{post: post, media: media})
+		}
 
-			if downloadLimit > 0 && len(mediaPairs) >= downloadLimit {
-				if len(mediaPairs) > downloadLimit {
-					mediaPairs = mediaPairs[:downloadLimit]
-				}
-				break discovery
+		if downloadLimit > 0 && len(mediaPairs) >= downloadLimit {
+			if len(mediaPairs) > downloadLimit {
+				mediaPairs = mediaPairs[:downloadLimit]
 			}
+			break
 		}
 	}
 
@@ -76,7 +89,7 @@ discovery:
 	return mediaPairs, nil
 }
 
-func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.Downloader, downloadLimit int, downloadInaccessibleMedia bool, mediaSelection string) error {
+func crawlCreator(creatorID string, apiClient api.Client, downloader *crawling.Downloader, downloadLimit int, downloadInaccessibleMedia bool, mediaSelection crawling.MediaSelection) error {
 	client, err := patreon.NewClient(apiClient, creatorID)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
