@@ -16,6 +16,14 @@ const (
 	GroupingStrategyByPost GroupingStrategy = "by-post"
 )
 
+type MediaSelection string
+
+const (
+	MediaSelectionImages      MediaSelection = "images"
+	MediaSelectionAttachments MediaSelection = "attachments"
+	MediaSelectionAll         MediaSelection = "all"
+)
+
 func getDownloadDir(baseDownloadDir, postTitle string, groupingStrategy GroupingStrategy) (string, error) {
 	switch groupingStrategy {
 	case GroupingStrategyByPost:

@@ -6,6 +6,7 @@ type Post struct {
 	ID                 string
 	Title              string
 	Media              []Media
+	Attachments        []Media
 	PublishedAt        time.Time
 	CurrentUserCanView bool
 }
