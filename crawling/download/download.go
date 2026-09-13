@@ -59,6 +59,10 @@ func Media(media patreon.Media, downloadDir string, modTime time.Time) ReportIte
 
 	_, err = os.Stat(downloadedFilePath)
 	if err == nil {
+		err = adjustFileTime(downloadedFilePath, modTime)
+		if err != nil {
+			return NewErrorItem(media, fmt.Errorf("failed to adjust file time: %w", err))
+		}
 		return NewSkippedItem(media, "already downloaded")
 	}
 

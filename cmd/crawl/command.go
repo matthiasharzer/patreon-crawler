@@ -10,10 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/MatthiasHarzer/patreon-crawler/crawling"
-	"github.com/MatthiasHarzer/patreon-crawler/patreon/api"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	"github.com/MatthiasHarzer/patreon-crawler/crawling"
+	"github.com/MatthiasHarzer/patreon-crawler/patreon/api"
 )
 
 var argCookie string
